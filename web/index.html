@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#08090a">
+  <title>CueFlow — Sincroniza subtítulos online, sin subir tu video</title>
+  <meta name="description" content="Sincroniza subtítulos SRT con tu video desde el navegador. Ajusta desfase y velocidad, elige la pista de audio y descarga tu SRT. Gratis y sin subir archivos.">
+  <link rel="canonical" href="https://cueflow.enriquepl.com/">
+  <meta property="og:type" content="website"><meta property="og:title" content="CueFlow — Automatic subtitle sync">
+  <meta property="og:description" content="Your subtitles. Right on time. Free, local subtitle synchronization in your browser.">
+  <meta property="og:url" content="https://cueflow.enriquepl.com/"><meta property="og:image" content="https://cueflow.enriquepl.com/social.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="/" aria-label="CueFlow"><svg viewBox="0 0 32 32" width="29" height="29" aria-hidden="true"><rect x="2" y="5" width="28" height="22" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 13h7m3 0h6M8 19h4m3 0h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>CueFlow<span class="web-tag">web</span></a><nav aria-label="Navigation"><a href="https://github.com/clls1-stinger/CueFlow" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a><button id="language" type="button" aria-label="Switch to English">EN</button></nav></header>
+  <main>
+    <section class="intro"><p class="eyebrow" data-i18n="eyebrow">SINCRONIZADOR DE SUBTÍTULOS</p><h1 data-i18n="title">Tus subtítulos. A tiempo.</h1><p class="lead" data-i18n="intro">Elige tu video y sus subtítulos. CueFlow ajusta los tiempos y te devuelve un SRT listo para ver.</p></section>
+    <section class="workspace" aria-label="CueFlow">
+      <div class="local-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span data-i18n="local">Tus archivos se quedan en tu dispositivo</span></div>
+      <form id="sync-form">
+        <fieldset id="inputs">
+          <div class="file-grid">
+            <label class="file-card" id="video-card"><span class="file-step">01</span><span class="file-title" data-i18n="video">Video o audio</span><svg class="file-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="4" y="6" width="24" height="20" rx="3"/><path d="m13 11 8 5-8 5z"/></svg><span class="file-name" id="video-name" data-i18n="choose">Elegir archivo</span><span class="file-meta" id="video-meta" data-i18n="videoHint">MP4, MKV, WebM, MOV, MP3, WAV…</span><span class="drop-hint" data-i18n="drop">o arrástralo aquí</span><input id="video-file" type="file" accept="video/*,audio/*,.mkv,.mka,.avi,.mov,.mp4,.webm,.m4a,.mp3,.wav,.flac,.ogg" aria-label="Video o audio"></label>
+            <label class="file-card" id="subtitle-card"><span class="file-step">02</span><span class="file-title" data-i18n="subtitle">Subtítulos</span><svg class="file-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="4" y="6" width="24" height="20" rx="3"/><path d="M9 14h7m3 0h4M9 20h4m3 0h7"/></svg><span class="file-name" id="subtitle-name" data-i18n="choose">Elegir archivo</span><span class="file-meta" id="subtitle-meta" data-i18n="subtitleHint">Archivo SRT · cualquier idioma</span><span class="drop-hint" data-i18n="drop">o arrástralo aquí</span><input id="subtitle-file" type="file" accept=".srt,application/x-subrip" aria-label="Subtítulos SRT"></label>
+          </div>
+          <div id="track-area" hidden><label for="audio-track" data-i18n="audioTrack">Pista de audio</label><select id="audio-track"></select><p class="help" data-i18n="trackHelp">Elige el doblaje que vas a escuchar. El idioma del SRT puede ser diferente.</p></div>
+          <details id="settings"><summary data-i18n="settings">Opciones de sincronización</summary><div class="settings-grid"><label><span data-i18n="encoding">Codificación del SRT</span><select id="encoding"><option value="auto" data-i18n="autoEncoding">Automática (Unicode)</option><option>UTF-8</option><option>UTF-16LE</option><option>UTF-16BE</option><option>Windows-1252</option><option>Windows-1251</option><option>Windows-1250</option><option>Windows-1253</option><option>Windows-1254</option><option>Windows-1255</option><option>Windows-1256</option><option>Shift_JIS</option><option>GB18030</option><option>Big5</option><option>EUC-KR</option><option>Windows-874</option></select></label><label><span data-i18n="maxOffset">Desfase máximo (segundos)</span><input id="max-offset" type="number" min="1" max="600" value="300" required></label><label class="checkbox"><input id="framerate" type="checkbox" checked><span data-i18n="framerate">Corregir también la velocidad de los subtítulos</span></label></div></details>
+        </fieldset>
+        <div id="status" role="status" aria-live="polite" hidden><div class="status-row"><strong id="phase"></strong><span id="percent"></span></div><progress id="progress" max="100" value="0"></progress><p class="help"><span data-i18n="working">Procesando en tu dispositivo</span><span id="elapsed"></span></p></div>
+        <div id="error" role="alert" hidden><strong data-i18n="errorTitle">No pudimos completar el ajuste</strong><p id="error-message"></p><a href="https://github.com/clls1-stinger/CueFlow/releases/latest" data-i18n="desktop">App de escritorio</a></div>
+        <p id="notice" role="status" hidden></p>
+        <button class="primary" id="sync" type="submit" disabled><span data-i18n="sync">Sincronizar subtítulos</span><span aria-hidden="true">→</span></button>
+        <button class="secondary" id="cancel" type="button" data-i18n="cancel" hidden>Cancelar</button>
+      </form>
+      <section id="result" hidden tabindex="-1"><div class="success-mark" aria-hidden="true">✓</div><h2 data-i18n="completed">Listos para darle play.</h2><p id="output-name"></p><dl class="metrics"><div><dt data-i18n="offsetLabel">Desfase corregido</dt><dd id="offset-result"></dd></div><div><dt data-i18n="scaleLabel">Velocidad</dt><dd id="scale-result"></dd></div><div><dt data-i18n="cuesLabel">Subtítulos</dt><dd id="cues-result"></dd></div></dl><a id="download" class="primary" download data-i18n="download">Descargar SRT sincronizado</a><p class="help" data-i18n="resultHint">Abre el video y este SRT en tu reproductor. Revisa algunos diálogos antes de cerrar esta página.</p><button id="reset" class="text-button" type="button" data-i18n="reset">Sincronizar otros archivos</button></section>
+    </section>
+    <p class="privacy" data-i18n="privacy">Sin cuenta. Sin subir tu película. Sin claves de API.</p>
+    <div class="practical"><p data-i18n="engineNote">La primera vez se descarga el motor local (unos 32 MB). Después puedes sincronizar sin enviar tus archivos.</p><p><span data-i18n="limits">Hasta 2 GB y 4 horas por archivo. La velocidad y capacidad dependen de tu dispositivo. Para películas grandes, usa la app de escritorio.</span> <a href="https://github.com/clls1-stinger/CueFlow/releases/latest" data-i18n="desktop">App de escritorio</a> <span aria-hidden="true">↗</span></p></div>
+    <section class="how"><h2 data-i18n="howTitle">Dos archivos. Un ajuste.</h2><p data-i18n="how">CueFlow detecta dónde hay voz y compara ese patrón con tus subtítulos. Corrige el desfase y los cambios habituales de velocidad sin traducir ni reescribir el texto.</p><p class="help" data-i18n="caveat">Usa subtítulos de la misma edición de la película. Montajes diferentes, música continua o un doblaje distinto pueden necesitar ajustes manuales. Comprueba el resultado al inicio, a la mitad y al final.</p></section>
+    <noscript><p>Activa JavaScript para sincronizar en tu navegador. Enable JavaScript to sync in your browser. <a href="https://github.com/clls1-stinger/CueFlow/releases/latest">Download CueFlow desktop / Descargar CueFlow</a>.</p></noscript>
+  </main>
+  <footer><span>CueFlow · <a href="https://github.com/clls1-stinger/CueFlow" data-i18n="openSource">Código abierto en GitHub</a></span><a href="/licenses.html" data-i18n="credits">Licencias y motor</a></footer>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

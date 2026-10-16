@@ -5,15 +5,15 @@
 [![Latest release](https://img.shields.io/github/v/release/clls1-stinger/CueFlow)](https://github.com/clls1-stinger/CueFlow/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**CueFlow is a free, open-source subtitle synchronizer for Windows, macOS and Linux.**
+**CueFlow is a free, open-source subtitle synchronizer for the web, Windows, macOS and Linux.**
 Automatically sync an existing SRT with a video or audio file, fix subtitle delay and
-frame-rate drift, and choose the audio track you want. Powered by ffsubsync and FFmpeg;
-runs offline, without uploads, transcription or API keys.
+frame-rate drift, and choose the audio track you want. The desktop app uses ffsubsync and FFmpeg; the web app uses FFmpeg WebAssembly, WebRTC VAD and timing correlation. Processing stays on your device, without uploads, transcription or API keys.
 
 **CueFlow es un sincronizador de subtítulos gratuito y de código abierto para Windows,
-macOS y Linux.** Ajusta un SRT adelantado, atrasado o con desfase progresivo usando las
+macOS, Linux y el navegador.** Ajusta un SRT adelantado, atrasado o con desfase progresivo usando las
 voces del video. Permite elegir la pista de audio y funciona sin conexión ni claves de API.
 
+[Open web app / Abrir versión web](https://cueflow.enriquepl.com/) ·
 [Download / Descargar](https://github.com/clls1-stinger/CueFlow/releases/latest) ·
 [English](#english) · [Español](#español) · [Build from source](docs/BUILDING.md)
 
@@ -21,6 +21,27 @@ voces del video. Permite elegir la pista de audio y funciona sin conexión ni cl
 
 The GIF records the actual application using an original synthetic audio fixture.
 El GIF muestra la aplicación real con un audio sintético de prueba creado para este proyecto.
+
+## Use CueFlow online / Usa CueFlow en línea
+
+**[cueflow.enriquepl.com](https://cueflow.enriquepl.com/)** — choose a video or audio file,
+choose its SRT, then download the synchronized subtitles. No installation or account.
+Audio-track selection and subtitle encodings work independently of the English/Spanish UI.
+
+Elige el video o audio, elige su SRT y descarga los subtítulos sincronizados.
+Sin instalar nada ni crear una cuenta. Puedes elegir la pista de audio y la codificación
+del texto. La web enlaza a este repositorio y a las descargas de escritorio.
+
+The browser downloads a local engine (about 32 MB) on first use. Files are processed
+locally and are never uploaded. The web edition accepts files up to 2 GiB and 4 hours;
+available memory and browser support can impose lower limits. Use desktop for larger files.
+El navegador descarga el motor en el primer uso y procesa los archivos localmente.
+Para películas grandes o dispositivos con poca memoria, usa la versión de escritorio.
+
+![CueFlow web: select local files, choose the audio track and download synchronized subtitles](docs/assets/web-demo.gif)
+
+Hosted on **Cloudflare Pages with a Workers-powered Pages Function** at `/api/health`.
+See [web setup, deployment and limitations](docs/WEB.md).
 
 ## English
 
@@ -31,7 +52,7 @@ intervals with the subtitle timings and finds a time shift and playback-speed co
 This fixes subtitles that start too early or late, as well as timing drift caused by
 common frame-rate differences.
 
-CueFlow is a graphical interface around [ffsubsync](https://github.com/smacke/ffsubsync),
+The CueFlow desktop app is a graphical interface around [ffsubsync](https://github.com/smacke/ffsubsync),
 the engine that performs the alignment. [FFmpeg](https://ffmpeg.org/) reads the audio,
 and WebRTC VAD detects speech. CueFlow adds English and Spanish controls, drag and drop,
 audio-track selection, encoding options, cancellation, input validation and safe output naming.

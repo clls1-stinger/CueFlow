@@ -2,8 +2,10 @@ name: Build and release
 on:
   push:
     branches: [main]
+    paths: ['cueflow/**', 'tests/**', 'scripts/**', 'pyproject.toml', 'uv.lock', '*.spec', 'shell.nix', '.github/workflows/build.yml']
     tags: ['v*']
   pull_request:
+    paths: ['cueflow/**', 'tests/**', 'scripts/**', 'pyproject.toml', 'uv.lock', '*.spec', 'shell.nix', '.github/workflows/build.yml']
   workflow_dispatch:
 permissions:
   contents: read

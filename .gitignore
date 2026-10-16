@@ -9,3 +9,10 @@ dist/
 vendor/
 *.log
 .DS_Store
+node_modules/
+web/public/engine/
+web/public/licenses/
+web/test-results/
+web/playwright-report/
+.wrangler/
+web/tests/fixtures/
