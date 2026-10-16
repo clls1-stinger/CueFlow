@@ -1,0 +1,34 @@
+"""Frozen and source entry points share the same worker protocol."""
+
+import os
+import sys
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--worker":
+        from cueflow.engine import worker
+
+        return worker(sys.argv[2])
+    if len(sys.argv) > 1 and sys.argv[1] == "--sync":
+        from cueflow.engine import cli
+
+        return cli(sys.argv[2:])
+    if "--self-test" in sys.argv:
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from cueflow.smoke import self_test
+
+        return self_test()
+    if sys.platform == "win32" and getattr(sys, "frozen", False):
+        import ctypes
+
+        processes = (ctypes.c_ulong * 2)()
+        # Hide only our own launch console, never the user's existing terminal.
+        if ctypes.windll.kernel32.GetConsoleProcessList(processes, 2) == 1:
+            ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
+    from cueflow.app import launch
+
+    return launch()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
