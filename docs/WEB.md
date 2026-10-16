@@ -1,6 +1,7 @@
 # CueFlow Web / CueFlow en el navegador
 
-**Live / En línea:** https://cueflow.enriquepl.com/  
+**Live / En línea:** https://cueflow.enriquepl.com/
+
 **Source / Código:** https://github.com/clls1-stinger/CueFlow/tree/main/web
 
 ## Use it / Cómo usarlo
@@ -48,6 +49,40 @@ la memoria del dispositivo puede imponer un límite menor. La primera carga desc
 el motor. Si el SRT usa una codificación antigua, selecciónala en Opciones. Comprueba
 el resultado en varios puntos: la herramienta no corrige por separado escenas añadidas
 o eliminadas. Para archivos grandes o incompatibles, usa escritorio.
+
+## Offline downloads and Android
+
+The page includes CueFlow icons and direct release downloads for Windows x64,
+macOS Apple Silicon, macOS Intel and Linux x64. Suggested desktop hardware is a
+64-bit dual-core processor, 4 GB RAM (8 GB for long movies or multitasking), and
+1 GB free for the app and temporary files, in addition to media storage. These
+are practical recommendations, not measured minimum hardware requirements.
+
+**Android is an installable PWA**, using the browser engine. Open the site in an
+updated Chrome for Android, choose **Install on Android**, then **Prepare offline
+mode** while connected. If the browser does not offer an automatic prompt, use
+Chrome's menu and choose Install app or Add to Home screen. This distribution uses
+browser installation rather than a standalone APK or a Play Store listing.
+
+The offline action saves the app shell, audio engine and VAD assets on the device.
+Only public application assets are cached, never your selected media or subtitles.
+A fresh reload and complete sync are tested with Chromium's network disabled.
+No physical Android device compatibility or performance certification is claimed.
+
+Suggested phone hardware: 4 GB RAM or more and at least 100 MB free for application
+assets. Start with short clips; available browser memory varies, so use desktop for
+large movies. Android and the browser may evict offline caches under storage pressure.
+Reopen the site online and prepare offline mode again if that happens.
+
+**Android usa una PWA instalable.** Abre la web en Chrome, instala CueFlow y prepara
+el modo offline con conexión una vez. Después puedes abrir la app y sincronizar sin
+internet. Se recomienda empezar con archivos pequeños; para películas largas usa
+escritorio. Las cifras de memoria y espacio son sugerencias, no mínimos medidos.
+
+The service worker caches a versioned shell on installation. The engine is cached
+only after the explicit offline action. New versions activate after existing CueFlow
+tabs close, and old caches are removed. Updating the app may require downloading the
+engine again. The health API and external download links are never cached.
 
 ## Architecture
 

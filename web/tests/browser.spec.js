@@ -58,3 +58,28 @@ test('selects the second audio track when the first is silent', async ({page}) =
   await expect(page.locator('#result')).toBeVisible({timeout:90000});
   expect(Math.abs(Number((await page.locator('#offset-result').textContent()).replace(' s',''))+2)).toBeLessThan(.3);
 });
+test('desktop downloads expose real platform builds and hardware suggestions', async ({page}) => {
+  await page.goto('/');
+  await expect(page.locator('.download-option')).toHaveCount(4);
+  for (const link of await page.locator('.download-option').all()) {
+    await expect(link).toHaveAttribute('href', /github\.com\/clls1-stinger\/CueFlow\/releases\/download\/v1\.1\.0\/CueFlow-1\.1\.0-/);
+    await expect(link.locator('img')).toHaveAttribute('alt','CueFlow');
+  }
+  await page.locator('.recommendations summary').click(); await expect(page.locator('.spec-list')).toContainText('4 GB');
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  await page.locator('#offline').screenshot({path:'test-results/downloads-mobile.png'});
+});
+test('Android PWA caches the engine and completes a fresh sync while fully offline', async ({page,context}) => {
+  await page.goto('/');
+  const manifest = await (await page.request.get('/manifest.webmanifest')).json();
+  expect(manifest.display).toBe('standalone'); expect(manifest.icons.some(i=>i.sizes==='512x512')).toBeTruthy();
+  await page.locator('#install-app').click(); await expect(page.locator('#pwa-status')).toContainText('Chrome');
+  await page.locator('#prepare-offline').click(); await expect(page.locator('#pwa-status')).toContainText('Modo offline listo',{timeout:90000});
+  await context.setOffline(true);
+  await page.reload(); await expect(page.locator('h1')).toBeVisible();
+  await select(page); await page.locator('#sync').click(); await expect(page.locator('#result')).toBeVisible({timeout:90000});
+  const pending=page.waitForEvent('download');await page.locator('#download').click();const download=await pending;
+  expect(parseSrt(await readFile(await download.path(),'utf8'))).toHaveLength(10);
+  await context.setOffline(false);
+});

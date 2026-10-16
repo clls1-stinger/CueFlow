@@ -40,3 +40,12 @@ Reference links: [Cron](https://cron.com),
 [Anam screen](https://refero.design/pages/2732a937-c497-4a1e-b589-ff7b51858fc4),
 [Anam flow](https://refero.design/flows/12937),
 [Appwrite completion](https://refero.design/pages/b9ebdcdd-2812-4b38-b013-c9ffa2fd631f).
+
+## Offline extension
+
+The user's follow-up adds direct desktop downloads, suggested hardware and Android.
+Keep the existing dark reference lock: monochrome download rows with the CueFlow
+icon; no additional CTA accent. Four desktop links name the OS and architecture.
+Android uses a separate installable-web-app row with explicit installation and
+offline preparation actions. Put hardware suggestions in an expandable section,
+keeping the main synchronization task first.

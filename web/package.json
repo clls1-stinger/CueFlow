@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "node scripts/prepare-assets.mjs && vite build && node scripts/stamp.mjs",
+    "build": "node scripts/prepare-assets.mjs && vite build && node scripts/stamp.mjs && node scripts/service-worker.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test",

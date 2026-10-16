@@ -40,6 +40,16 @@ Para películas grandes o dispositivos con poca memoria, usa la versión de escr
 
 ![CueFlow web: select local files, choose the audio track and download synchronized subtitles](docs/assets/web-demo.gif)
 
+**Android:** [install CueFlow as a PWA](https://cueflow.enriquepl.com/#offline), then
+choose **Prepare offline mode** once while online. It can then open and sync without
+internet. Android usa una app web instalable: instálala desde Chrome y pulsa
+**Preparar modo offline**. Empieza con archivos pequeños; usa escritorio para películas
+largas. [Hardware suggestions and offline guide](docs/WEB.md#offline-downloads-and-android).
+
+The web page also provides direct desktop downloads with CueFlow icons and suggested
+CPU, memory and storage specifications. La página incluye descargas de escritorio con
+iconos y recomendaciones de equipo.
+
 Hosted on **Cloudflare Pages with a Workers-powered Pages Function** at `/api/health`.
 See [web setup, deployment and limitations](docs/WEB.md).
 

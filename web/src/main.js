@@ -1,4 +1,5 @@
 import './style.css';
+import { setupPwa } from './pwa.js';
 import { messages } from './i18n.js';
 import { decodeSrt, parseSrt, applyTiming } from './subtitles.js';
 import { MediaSession } from './media.js';
@@ -144,4 +145,5 @@ $('reset').onclick = () => {
 window.addEventListener('beforeunload', e => { if (busy) { e.preventDefault(); e.returnValue = ''; } });
 setInterval(() => { if (busy) renderStatus(); }, 1000);
 translate(); update();
+setupPwa(t);
 if (!globalThis.WebAssembly || !globalThis.Worker || !crypto.subtle) { showError(new Error('unsupported')); $('inputs').disabled = true; }
