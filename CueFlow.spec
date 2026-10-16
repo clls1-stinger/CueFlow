@@ -28,4 +28,3 @@ if sys.platform == 'darwin':
                  info_plist={'NSHighResolutionCapable': True,
                              'CFBundleShortVersionString': '1.0.0',
                              'LSMinimumSystemVersion': '12.0'})
-

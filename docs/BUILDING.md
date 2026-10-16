@@ -103,4 +103,3 @@ SHA-256 y el código fuente exacto de FFmpeg a GitHub Releases.
 
 El GIF se graba con `scripts/record_demo.py`: usa la aplicación real y archivos de prueba
 originales. No necesita ni incorpora películas o subtítulos aportados por usuarios.
-

@@ -25,4 +25,3 @@ de editor y las de macOS no están notarizadas. Consulta las instrucciones en el
 Cada descarga debe superar las pruebas de código y del ejecutable antes de publicarse.
 El archivo `.sha256` permite verificarla. El archivo fuente de FFmpeg se incluye por su
 licencia; no es la aplicación de escritorio.
-

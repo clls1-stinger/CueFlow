@@ -40,4 +40,3 @@ cp ffbuild/config.log "$ROOT/vendor/ffmpeg/build-config.log"
 # Executables at a stable, replaceable location; development archives stay excluded.
 cp "$ROOT"/vendor/ffmpeg/bin/ffmpeg* "$ROOT/vendor/ffmpeg/"
 cp "$ROOT"/vendor/ffmpeg/bin/ffprobe* "$ROOT/vendor/ffmpeg/"
-

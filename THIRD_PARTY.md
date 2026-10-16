@@ -47,4 +47,3 @@ Las descargas incluyen los avisos de licencia y permiten reemplazar las bibliote
 dinámicas de Qt por versiones compatibles modificadas. El código fuente correspondiente
 de FFmpeg se adjunta a la publicación; su compilación está descrita en
 `scripts/build_ffmpeg.sh`. El repositorio no distribuye películas ni subtítulos de terceros.
-

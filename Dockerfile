@@ -15,4 +15,3 @@ COPY . .
 RUN uv sync --frozen --extra dev && uv run pytest -q
 RUN uv run python scripts/collect_licenses.py && uv run pyinstaller --noconfirm --clean CueFlow.spec
 RUN ./dist/CueFlow/CueFlow --self-test && uv run python scripts/package.py
-
