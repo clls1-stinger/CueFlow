@@ -6,6 +6,10 @@ import sys
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--worker":
+        if os.environ.get("CUEFLOW_DIAGNOSTICS") == "1":
+            import faulthandler
+
+            faulthandler.dump_traceback_later(30, repeat=True)
         from cueflow.engine import worker
 
         return worker(sys.argv[2])

@@ -6,8 +6,10 @@ from cueflow.engine import SyncError, SyncRequest, read_subtitles, save_unique, 
 from cueflow.smoke import fixture
 
 
-def test_preserves_original_and_recovers_offset(tmp_path):
+@pytest.mark.parametrize("line_ending", ["\n", "\r\n"])
+def test_preserves_original_and_recovers_offset(tmp_path, line_ending):
     video, subtitle = fixture(tmp_path)
+    subtitle.write_bytes(subtitle.read_text(encoding="utf-8").replace("\n", line_ending).encode())
     original = subtitle.read_bytes()
     result = synchronize(SyncRequest(str(video), str(subtitle), str(tmp_path), fix_framerate=False))
     assert result["cues"] == 10
@@ -36,7 +38,7 @@ def test_legacy_and_unicode_subtitles(tmp_path, encoding):
 def test_preserves_styling_and_non_latin_text(tmp_path):
     path = tmp_path / "sub.srt"
     text = "1\n00:00:01,000 --> 00:00:03,000\n<i>こんにちは &amp; مرحبًا</i>\n"
-    path.write_text(text, encoding="utf-8")
+    path.write_bytes(text.encode("utf-8"))
     cleaned, _, _, _ = read_subtitles(path, "auto", True)
     assert cleaned == text
 

@@ -78,6 +78,7 @@ def self_test():
 
     from cueflow.app import Window
 
+    os.environ["CUEFLOW_DIAGNOSTICS"] = "1"
     app = QApplication.instance() or QApplication([])
     window = Window()
     window.show()
@@ -105,6 +106,7 @@ def self_test():
             time.sleep(0.02)
         app.processEvents()
         if window.busy():
+            print("Worker diagnostics:\n" + window.details.toPlainText(), flush=True)
             window.cancel()
             window.process.waitForFinished(3000)
             raise RuntimeError("Frozen GUI worker timed out")

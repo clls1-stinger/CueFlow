@@ -55,6 +55,12 @@ jobs:
         if: runner.os == 'Windows' && steps.ffmpeg-cache.outputs.cache-hit != 'true'
         shell: msys2 {0}
         run: bash scripts/build_ffmpeg.sh
+      - name: Cache compiled FFmpeg
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: vendor
+          key: ffmpeg-${{ matrix.platform }}-${{ hashFiles('scripts/build_ffmpeg.sh') }}
       - name: Lint and tests
         run: |
           uv run ruff check cueflow tests scripts
@@ -63,9 +69,12 @@ jobs:
         run: |
           uv run python scripts/collect_licenses.py
           uv run pyinstaller --noconfirm --clean CueFlow.spec
-      - name: Smoke test frozen app (Unix)
-        if: runner.os != 'Windows'
+      - name: Smoke test frozen app (Linux)
+        if: runner.os == 'Linux'
         run: ./dist/CueFlow/CueFlow --self-test
+      - name: Smoke test frozen app (macOS)
+        if: runner.os == 'macOS'
+        run: ./dist/CueFlow.app/Contents/MacOS/CueFlow --self-test
       - name: Smoke test frozen app (Windows)
         if: runner.os == 'Windows'
         shell: pwsh

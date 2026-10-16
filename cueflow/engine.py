@@ -132,7 +132,8 @@ def synchronize(request: SyncRequest, notify=lambda event: None) -> dict:
     with tempfile.TemporaryDirectory(prefix="cueflow-") as workspace:
         source = Path(workspace) / "source.srt"
         aligned = Path(workspace) / "aligned.srt"
-        source.write_text(text, encoding="utf-8")
+        # Preserve CRLF input without Windows expanding it to CRCRLF.
+        source.write_text(text, encoding="utf-8", newline="\n")
         arguments = [
             str(video),
             "-i",
