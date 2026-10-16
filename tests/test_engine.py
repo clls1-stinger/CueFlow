@@ -2,8 +2,15 @@ from pathlib import Path
 
 import pytest
 
-from cueflow.engine import SyncError, SyncRequest, read_subtitles, save_unique, synchronize
-from cueflow.smoke import fixture
+from cueflow.engine import (
+    SyncError,
+    SyncRequest,
+    probe_audio_tracks,
+    read_subtitles,
+    save_unique,
+    synchronize,
+)
+from cueflow.smoke import MULTILINGUAL_LINES, fixture, multitrack_fixture
 
 
 @pytest.mark.parametrize("line_ending", ["\n", "\r\n"])
@@ -55,3 +62,52 @@ def test_refuses_output_for_missing_input(tmp_path):
     with pytest.raises(SyncError, match="input_missing"):
         synchronize(SyncRequest("missing", "missing", str(tmp_path)))
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize(
+    "encoding,content",
+    [
+        ("cp932", "明日また会いましょう。"),
+        ("gb18030", "明天再见。"),
+        ("cp949", "내일 만나요."),
+        ("cp1251", "Привет, мир."),
+        ("cp1256", "مرحبا بالعالم"),
+        ("cp1255", "שלום עולם"),
+        ("cp874", "พรุ่งนี้พบกันใหม่"),
+        ("utf-32", "कल फिर मिलेंगे।"),
+    ],
+)
+def test_multilingual_legacy_encodings(tmp_path, encoding, content):
+    path = tmp_path / "sub.srt"
+    path.write_bytes(f"1\n00:00:01,000 --> 00:00:03,000\n{content}\n".encode(encoding))
+    choice = "auto" if encoding == "utf-32" else encoding
+    _, entries, _, _ = read_subtitles(path, choice, True)
+    assert entries[0].content == content
+
+
+def test_selected_audio_and_multilingual_output(tmp_path):
+    import srt
+
+    media, subtitle = multitrack_fixture(tmp_path)
+    original = subtitle.read_bytes()
+    tracks = probe_audio_tracks(media)
+    assert [t["language"] for t in tracks] == ["eng", "jpn"]
+    with pytest.raises(SyncError, match="no_speech"):
+        synchronize(SyncRequest(str(media), str(subtitle), str(tmp_path), audio_track=0))
+    with pytest.raises(SyncError, match="audio_track_invalid"):
+        synchronize(SyncRequest(str(media), str(subtitle), str(tmp_path), audio_track=2))
+    assert not list(tmp_path.glob("*.synced*.srt"))
+    result = synchronize(
+        SyncRequest(
+            str(media),
+            str(subtitle),
+            str(tmp_path),
+            audio_track=1,
+            fix_framerate=False,
+        )
+    )
+    assert result["offset"] == pytest.approx(-2, abs=0.5)
+    assert result["audio_track"] == 2
+    assert subtitle.read_bytes() == original
+    output = Path(result["output"]).read_text(encoding="utf-8")
+    assert [entry.content for entry in srt.parse(output)] == MULTILINGUAL_LINES

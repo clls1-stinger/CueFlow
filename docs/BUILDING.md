@@ -22,7 +22,9 @@ uv run ruff check cueflow tests scripts
 
 On PowerShell, set `$env:QT_QPA_PLATFORM = "offscreen"` and run `uv run pytest -q`.
 Tests cover a real synthetic-audio alignment, the GUI-to-worker flow, multilingual
-text preservation, encoding choices, silence rejection, malformed SRTs and output collisions.
+text preservation across ten multilingual subtitle lines, legacy encoding choices, selecting the second
+audio track when the first is silent, silence rejection, malformed SRTs and output collisions.
+Fixtures use synthetic speech-like audio; they do not benchmark every spoken language.
 
 ### Native builds
 
@@ -41,7 +43,8 @@ uv run python scripts/package.py
 On Windows, build FFmpeg in an MSYS2 MINGW64 shell with GCC, make, diffutils, tar,
 xz and curl. Run the Python commands in your normal shell and use
 `dist/CueFlow/CueFlow.exe --self-test`. The workflow contains the complete setup.
-macOS builds produce a `.app` and retain a command-line copy for the smoke test.
+On macOS, test the actual application bundle with
+`./dist/CueFlow.app/Contents/MacOS/CueFlow --self-test`.
 
 Linux builds use Ubuntu 22.04 as the baseline. Required system packages include
 `libgl1`, `libegl1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-cursor0`, `libfontconfig1`
@@ -62,8 +65,8 @@ docker rm cueflow-artifacts
 After all checks pass, push a version tag matching `pyproject.toml` and `scripts/package.py`:
 
 ```bash
-git tag v1.0.0
-git push origin main v1.0.0
+git tag v1.1.0
+git push origin main v1.1.0
 ```
 
 The release job waits for every matrix build, then publishes all archives, SHA-256
@@ -97,7 +100,7 @@ y abre cada binario en modo de comprobación antes de preparar los archivos desc
 Los comandos de compilación, el entorno MSYS2 de Windows y las bibliotecas necesarias
 en Linux están descritos arriba y en `.github/workflows/build.yml`.
 
-Para publicar, sube `main` y una etiqueta como `v1.0.0`. El trabajo de publicación espera
+Para publicar, sube `main` y una etiqueta como `v1.1.0`. El trabajo de publicación espera
 a que todas las plataformas pasen sus pruebas. Después adjunta los paquetes, sus sumas
 SHA-256 y el código fuente exacto de FFmpeg a GitHub Releases.
 

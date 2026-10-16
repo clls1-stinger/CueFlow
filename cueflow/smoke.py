@@ -71,6 +71,69 @@ def fixture(folder: Path):
     return audio, subtitle
 
 
+MULTILINGUAL_LINES = [
+    "¿Mañana? Sí, aquí.",
+    "明日また会いましょう。",
+    "明天再见。",
+    "내일 만나요.",
+    "Привет, мир.",
+    "مرحبًا بالعالم",
+    "שלום עולם",
+    "कल फिर मिलेंगे।",
+    "พรุ่งนี้พบกันใหม่",
+    "<i>Até amanhã. Görüşürüz. À bientôt.</i>",
+]
+
+
+def multitrack_fixture(folder: Path):
+    """Silence first, speech second; tagged languages are test metadata, not ASR."""
+    import os
+
+    audio, subtitle = fixture(folder)
+    silence = folder / "silence.wav"
+    with wave.open(str(audio), "rb") as source, wave.open(str(silence), "wb") as target:
+        target.setparams(source.getparams())
+        target.writeframes(b"\x00" * source.getnframes() * source.getsampwidth())
+    media = folder / "Multiple audio tracks.mka"
+    suffix = ".exe" if os.name == "nt" else ""
+    subprocess.run(
+        [
+            str(ffmpeg_directory() / ("ffmpeg" + suffix)),
+            "-v",
+            "error",
+            "-nostdin",
+            "-y",
+            "-i",
+            str(silence),
+            "-i",
+            str(audio),
+            "-map",
+            "0:a:0",
+            "-map",
+            "1:a:0",
+            "-c:a",
+            "copy",
+            "-metadata:s:a:0",
+            "language=eng",
+            "-metadata:s:a:1",
+            "language=jpn",
+            "-metadata:s:a:1",
+            "title=Dialogue",
+            "-f",
+            "matroska",
+            str(media),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=20,
+    )
+    entries = list(srt.parse(subtitle.read_text(encoding="utf-8")))
+    for entry, text in zip(entries, MULTILINGUAL_LINES):
+        entry.content = text
+    subtitle.write_text(srt.compose(entries), encoding="utf-8", newline="\n")
+    return media, subtitle
+
+
 def self_test():
     import os
 
@@ -94,10 +157,16 @@ def self_test():
         )
     with tempfile.TemporaryDirectory() as temp:
         folder = Path(temp)
-        video, subtitle = fixture(folder)
+        video, subtitle = multitrack_fixture(folder)
         before = hashlib.sha256(subtitle.read_bytes()).hexdigest()
         window.set_file("video", str(video))
         window.set_file("subtitle", str(subtitle))
+        probe_deadline = time.monotonic() + 25
+        while window.probe and time.monotonic() < probe_deadline:
+            app.processEvents()
+            time.sleep(0.02)
+        assert window.probe is None and window.audio.count() == 2, window.error_code
+        window.audio.setCurrentIndex(1)
         window.framerate.setChecked(False)
         window.start()
         deadline = time.monotonic() + 90
@@ -113,9 +182,14 @@ def self_test():
         assert window.result is not None, window.details.toPlainText()
         result = window.result
         assert result["cues"] == 10
+        assert result["audio_track"] == 2
+        assert result["audio_language"] == "jpn"
         assert abs(result["offset"] + 2) < 0.5, result
         assert before == hashlib.sha256(subtitle.read_bytes()).hexdigest()
         assert Path(result["output"]).is_file()
+        assert [
+            x.content for x in srt.parse(Path(result["output"]).read_text(encoding="utf-8"))
+        ] == MULTILINGUAL_LINES
         print(
             "CueFlow smoke test passed: Qt, FFmpeg, ffprobe, VAD, alignment and safe output.",
             flush=True,

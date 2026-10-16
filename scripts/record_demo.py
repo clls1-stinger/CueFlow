@@ -14,11 +14,11 @@ from PySide6.QtCore import QBuffer, QIODevice
 from PySide6.QtWidgets import QApplication
 
 from cueflow.app import Window
-from cueflow.smoke import fixture
+from cueflow.smoke import multitrack_fixture
 
 app = QApplication(sys.argv)
 window = Window()
-window.resize(840, 990)
+window.resize(840, 1100)
 window.show()
 frames, durations = [], []
 
@@ -36,17 +36,26 @@ def capture(duration=1200):
 assets = Path("docs/assets")
 assets.mkdir(parents=True, exist_ok=True)
 with tempfile.TemporaryDirectory(prefix="cueflow-demo-") as workspace:
-    video, subtitle = fixture(Path(workspace))
+    video, subtitle = multitrack_fixture(Path(workspace))
     for lang in ("en", "es"):
         window.language.setCurrentIndex(0 if lang == "en" else 1)
         window.result, window.error_code, window.phase = None, None, "ready"
         window.open_button.hide()
         for _, field, _ in window.fields.values():
             field.clear()
+        window.audio_tracks = []
+        window.refresh_audio_tracks()
         window.refresh_status()
         capture(1400)
         window.grab().save(str(assets / f"screenshot-{lang}.png"))
         window.set_file("video", str(video))
+        deadline = time.monotonic() + 25
+        while window.probe and time.monotonic() < deadline:
+            app.processEvents()
+            time.sleep(0.02)
+        if window.probe or window.audio.count() != 2:
+            raise RuntimeError("Could not read demo audio tracks")
+        window.audio.setCurrentIndex(1)
         capture(1000)
         window.set_file("subtitle", str(subtitle))
         capture(1000)

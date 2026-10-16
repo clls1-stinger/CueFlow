@@ -30,7 +30,7 @@ esac
   --enable-demuxer=mov,matroska,avi,asf,flv,mpegps,mpegts,ogg,wav,flac,mp3,aac,ac3,eac3,aiff \
   --enable-parser=aac,aac_latm,ac3,dca,flac,mpegaudio,opus,vorbis \
   --enable-decoder=aac,aac_fixed,aac_latm,ac3,eac3,mp3,mp3float,mp2,flac,opus,vorbis,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,pcm_s32le,pcm_f32le,pcm_f64le,pcm_u8,alac,dca,wmav1,wmav2 \
-  --enable-encoder=pcm_s16le --enable-muxer=wav,pcm_s16le,null \
+  --enable-encoder=pcm_s16le --enable-muxer=wav,pcm_s16le,null,matroska \
   --enable-filter=aresample,aformat,anull \
   "${EXTRA[@]}"
 make -j "${CUEFLOW_BUILD_JOBS:-4}"

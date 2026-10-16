@@ -31,7 +31,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from cueflow.engine import SyncRequest
+from cueflow import __version__
+from cueflow.engine import SyncError, SyncRequest, audio_probe_command, parse_audio_tracks
 from cueflow.i18n import TEXT
 
 STYLE = """
@@ -113,6 +114,12 @@ class Window(QMainWindow):
         if self.lang not in TEXT:
             self.lang = "en"
         self.process = None
+        self.probe = None
+        self.audio_tracks = []
+        self.audio_error = None
+        self.probe_timer = QTimer(self)
+        self.probe_timer.setSingleShot(True)
+        self.probe_timer.timeout.connect(self.probe_timeout)
         self.workspace = None
         self.result = None
         self.buffer = ""
@@ -142,7 +149,7 @@ class Window(QMainWindow):
         self.language.addItem("English", "en")
         self.language.addItem("Español", "es")
         self.language.setCurrentIndex(1 if self.lang == "es" else 0)
-        self.language.setAccessibleName("Language / Idioma")
+        self.language.setAccessibleName("Interface language / Idioma de la interfaz")
         self.language.currentIndexChanged.connect(self.change_language)
         top.addWidget(self.language)
         layout.addLayout(top)
@@ -168,6 +175,12 @@ class Window(QMainWindow):
             layout.addLayout(row)
             caption.setBuddy(field)
             self.fields[key] = (caption, field, button)
+            if key == "video":
+                self.audio_label = label()
+                self.audio = QComboBox()
+                self.audio_label.setBuddy(self.audio)
+                layout.addWidget(self.audio_label)
+                layout.addWidget(self.audio)
         self.advanced = QCheckBox()
         layout.addWidget(self.advanced)
         self.advanced_panel = QWidget()
@@ -181,6 +194,20 @@ class Window(QMainWindow):
             ("Windows-1252", "cp1252"),
             ("Latin-1", "latin1"),
             ("UTF-16", "utf-16"),
+            ("UTF-32", "utf-32"),
+            ("Cyrillic / Windows-1251", "cp1251"),
+            ("Cyrillic / KOI8-R", "koi8-r"),
+            ("Arabic / Windows-1256", "cp1256"),
+            ("Hebrew / Windows-1255", "cp1255"),
+            ("Greek / Windows-1253", "cp1253"),
+            ("Turkish / Windows-1254", "cp1254"),
+            ("Vietnamese / Windows-1258", "cp1258"),
+            ("Thai / Windows-874", "cp874"),
+            ("Japanese / CP932 (Shift JIS)", "cp932"),
+            ("Japanese / EUC-JP", "euc-jp"),
+            ("Chinese / GB18030", "gb18030"),
+            ("Chinese / Big5", "big5"),
+            ("Korean / CP949", "cp949"),
         ]:
             self.encoding.addItem(name, value)
         form.addRow(self.encoding_label, self.encoding)
@@ -257,6 +284,7 @@ class Window(QMainWindow):
             (self.open_button, "open"),
             (self.advanced, "advanced"),
             (self.encoding_label, "encoding"),
+            (self.audio_label, "audio_track"),
             (self.offset_label, "offset"),
             (self.repair, "repair"),
             (self.framerate, "framerate"),
@@ -264,6 +292,10 @@ class Window(QMainWindow):
         ]:
             widget.setText(self.t(key))
         self.encoding.setItemText(0, self.t("auto"))
+        self.language.setToolTip(self.t("interface_language"))
+        self.audio.setAccessibleName(self.t("audio_track"))
+        self.audio.setToolTip(self.t("audio_help"))
+        self.refresh_audio_tracks()
         for key, (caption, field, button) in self.fields.items():
             caption.setText(self.t(key))
             field.setAccessibleName(self.t(key))
@@ -279,7 +311,7 @@ class Window(QMainWindow):
             filters = (
                 "SubRip (*.srt);;All files (*)"
                 if key == "subtitle"
-                else "Media (*.mp4 *.mkv *.avi *.mov *.webm *.m4v *.wav *.mp3 *.flac *.m4a *.ogg);;All files (*)"
+                else "Media (*.mp4 *.mkv *.avi *.mov *.webm *.m4v *.wav *.mp3 *.flac *.m4a *.mka *.ogg *.aac *.ac3 *.aiff);;All files (*)"
             )
             path, _ = QFileDialog.getOpenFileName(self, self.t(key), "", filters)
         if path:
@@ -291,6 +323,88 @@ class Window(QMainWindow):
         self.fields[key][1].setToolTip(path)
         if key == "video":
             self.fields["output"][1].setText(str(Path(path).parent))
+            self.load_audio_tracks(path)
+
+    def refresh_audio_tracks(self):
+        selected = self.audio.currentData()
+        self.audio.clear()
+        for track in self.audio_tracks:
+            code = track["language"]
+            language = QLocale.codeToLanguage(code)
+            name = (
+                QLocale(language).nativeLanguageName()
+                if language not in (QLocale.AnyLanguage, QLocale.C)
+                else code
+                if code not in ("und", "")
+                else self.t("unknown_language")
+            )
+            parts = [self.t("track_number").format(number=track["index"] + 1), name]
+            if track["title"]:
+                parts.append(track["title"])
+            if track["codec"]:
+                parts.append(track["codec"])
+            self.audio.addItem(" · ".join(parts), track["index"])
+        if not self.audio_tracks:
+            self.audio.addItem(self.t("probing" if self.probe else "choose_media"), None)
+        index = self.audio.findData(selected)
+        if index >= 0:
+            self.audio.setCurrentIndex(index)
+        self.audio.setEnabled(bool(self.audio_tracks) and not self.busy())
+
+    def stop_probe(self):
+        self.probe_timer.stop()
+        process, self.probe = self.probe, None
+        if process:
+            process.kill()
+            process.waitForFinished(1000)
+            process.deleteLater()
+
+    def load_audio_tracks(self, path):
+        self.stop_probe()
+        self.audio_tracks, self.audio_error = [], None
+        self.audio.clear()
+        self.error_code = None
+        try:
+            command = audio_probe_command(Path(path))
+        except SyncError as exc:
+            self.audio_error = self.error_code = exc.code
+            self.sync_button.setEnabled(True)
+            self.refresh_audio_tracks()
+            self.refresh_status()
+            return
+        process = self.probe = QProcess(self)
+        process.finished.connect(lambda code, status, p=process: self.probe_finished(p, code))
+        process.errorOccurred.connect(lambda error, p=process: self.probe_failed(p, error))
+        self.sync_button.setEnabled(False)
+        self.refresh_audio_tracks()
+        process.start(command[0], command[1:])
+        self.probe_timer.start(20000)
+
+    def probe_failed(self, process, error):
+        if error == QProcess.FailedToStart:
+            self.probe_finished(process, 1)
+
+    def probe_timeout(self):
+        if self.probe:
+            self.probe.kill()
+
+    def probe_finished(self, process, code):
+        if process is not self.probe:
+            return
+        self.probe_timer.stop()
+        self.probe = None
+        try:
+            if code:
+                raise SyncError("audio_probe_failed")
+            self.audio_tracks = parse_audio_tracks(
+                bytes(process.readAllStandardOutput()).decode("utf-8", errors="replace")
+            )
+        except SyncError as exc:
+            self.audio_error = self.error_code = exc.code
+        self.sync_button.setEnabled(True)
+        self.refresh_audio_tracks()
+        self.refresh_status()
+        process.deleteLater()
 
     def dragEnterEvent(self, event):
         if (
@@ -313,7 +427,7 @@ class Window(QMainWindow):
         return self.process is not None and self.process.state() != QProcess.NotRunning
 
     def start(self):
-        if self.busy():
+        if self.busy() or self.probe:
             return
         self.result, self.error_code, self.cancelled = None, None, False
         self.buffer = ""
@@ -324,6 +438,10 @@ class Window(QMainWindow):
             self.error_code = "input_missing"
             self.refresh_status()
             return
+        if self.audio_error or self.audio.currentData() is None:
+            self.error_code = self.audio_error or "audio_missing"
+            self.refresh_status()
+            return
         request = SyncRequest(
             self.fields["video"][1].text(),
             self.fields["subtitle"][1].text(),
@@ -332,6 +450,7 @@ class Window(QMainWindow):
             self.repair.isChecked(),
             self.max_offset.value(),
             self.framerate.isChecked(),
+            self.audio.currentData(),
         )
         self.workspace = tempfile.TemporaryDirectory(prefix="cueflow-ui-")
         request_path = Path(self.workspace.name) / "request.json"
@@ -360,6 +479,7 @@ class Window(QMainWindow):
         self.sync_button.setEnabled(not busy)
         self.advanced.setEnabled(not busy)
         self.advanced_panel.setEnabled(not busy)
+        self.audio.setEnabled(not busy and bool(self.audio_tracks))
         for _, field, button in self.fields.values():
             field.setEnabled(not busy)
             button.setEnabled(not busy)
@@ -472,13 +592,14 @@ class Window(QMainWindow):
                 return
             self.cancel()
             self.process.waitForFinished(3000)
+        self.stop_probe()
         event.accept()
 
 
 def launch():
     app = QApplication(sys.argv)
     app.setApplicationName("CueFlow")
-    app.setApplicationVersion("1.0.0")
+    app.setApplicationVersion(__version__)
     app.setFont(
         QFont(
             "Segoe UI"

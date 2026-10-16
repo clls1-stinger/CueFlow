@@ -1,14 +1,18 @@
 <p align="center"><img src="docs/assets/cueflow.png" width="96" alt="CueFlow"></p>
 
-# CueFlow
+# CueFlow: Automatic Subtitle Sync / Sincronizador de subtítulos
 
-**Right words. Right moment. / Cada frase, a su tiempo.**
+[![Latest release](https://img.shields.io/github/v/release/clls1-stinger/CueFlow)](https://github.com/clls1-stinger/CueFlow/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A desktop app that synchronizes an existing SRT with the voices in a video.
-Runs locally, without uploading your movie, transcribing it or requiring an API key.
+**CueFlow is a free, open-source subtitle synchronizer for Windows, macOS and Linux.**
+Automatically sync an existing SRT with a video or audio file, fix subtitle delay and
+frame-rate drift, and choose the audio track you want. Powered by ffsubsync and FFmpeg;
+runs offline, without uploads, transcription or API keys.
 
-Una aplicación de escritorio que sincroniza un SRT existente con las voces de un video.
-Funciona localmente, sin subir la película, transcribirla ni pedir claves de API.
+**CueFlow es un sincronizador de subtítulos gratuito y de código abierto para Windows,
+macOS y Linux.** Ajusta un SRT adelantado, atrasado o con desfase progresivo usando las
+voces del video. Permite elegir la pista de audio y funciona sin conexión ni claves de API.
 
 [Download / Descargar](https://github.com/clls1-stinger/CueFlow/releases/latest) ·
 [English](#english) · [Español](#español) · [Build from source](docs/BUILDING.md)
@@ -20,7 +24,7 @@ El GIF muestra la aplicación real con un audio sintético de prueba creado para
 
 ## English
 
-### What it does
+### Automatically sync SRT subtitles with video or audio
 
 Give CueFlow a video and its SRT. It detects when people are speaking, compares those
 intervals with the subtitle timings and finds a time shift and playback-speed correction.
@@ -30,10 +34,13 @@ common frame-rate differences.
 CueFlow is a graphical interface around [ffsubsync](https://github.com/smacke/ffsubsync),
 the engine that performs the alignment. [FFmpeg](https://ffmpeg.org/) reads the audio,
 and WebRTC VAD detects speech. CueFlow adds English and Spanish controls, drag and drop,
-encoding options, cancellation, input validation and safe output naming.
+audio-track selection, encoding options, cancellation, input validation and safe output naming.
 
-It uses speech timing rather than the meaning of words, so the video and subtitles can
-be in different languages. It does not translate, generate subtitles, edit the video or
+Audio and subtitle languages are independent of the English/Spanish interface.
+CueFlow uses speech timing rather than the meaning of words, so the video and subtitles
+can be in different languages: for example, Japanese audio with Spanish subtitles,
+English audio with Arabic subtitles, or French audio with Chinese subtitles.
+There is no language allowlist and no language-specific transcription model. It does not translate, generate subtitles, edit the video or
 guarantee word-perfect alignment. Review a scene near the start, middle and end.
 
 ### Download and run
@@ -43,10 +50,10 @@ Release automation publishes the downloads only after all four builds and their 
 
 | Platform | File | How to open |
 | --- | --- | --- |
-| Windows 10/11, x64 | `CueFlow-1.0.0-windows-x64.zip` | Extract the whole ZIP; run `CueFlow.exe`. |
-| macOS 12+, Apple Silicon | `CueFlow-1.0.0-macos-arm64.zip` | Extract and open `CueFlow.app`. |
-| macOS 12+, Intel | `CueFlow-1.0.0-macos-x64.zip` | Extract and open `CueFlow.app`. |
-| Linux x64, Ubuntu 22.04+ or compatible | `CueFlow-1.0.0-linux-x64.tar.gz` | Extract; run `./CueFlow/CueFlow`. |
+| Windows 10/11, x64 | `CueFlow-1.1.0-windows-x64.zip` | Extract the whole ZIP; run `CueFlow.exe`. |
+| macOS 12+, Apple Silicon | `CueFlow-1.1.0-macos-arm64.zip` | Extract and open `CueFlow.app`. |
+| macOS 12+, Intel | `CueFlow-1.1.0-macos-x64.zip` | Extract and open `CueFlow.app`. |
+| Linux x64, Ubuntu 22.04+ or compatible | `CueFlow-1.1.0-linux-x64.tar.gz` | Extract; run `./CueFlow/CueFlow`. |
 
 The downloads include Python, the application libraries, FFmpeg and ffprobe. Keep the
 extracted folder together. Linux still needs a graphical desktop and standard OpenGL,
@@ -61,9 +68,10 @@ are not included in this release. Source availability is not a promise of suppor
 ### Use it
 
 1. Choose or drop your video and `.srt` file.
-2. Choose where to save the result. The video folder is selected by default.
-3. Click **Synchronize subtitles**.
-4. Open the output folder and load the new SRT in your player.
+2. Select the dialogue audio track; language tags and titles help identify dubbed tracks.
+3. Choose where to save the result. The video folder is selected by default.
+4. Click **Synchronize subtitles**.
+5. Open the output folder and load the new SRT in your player.
 
 The result is named `video.synced.srt`. If that name exists, CueFlow creates
 `video.synced.1.srt`, then `.2.srt`, and so on. Neither input is overwritten.
@@ -79,7 +87,8 @@ partially parsed subtitle file.
 ### What to expect
 
 - Best results: matching editions with a fixed delay or uniform timing drift.
-- Uses the first audio track. For another language or commentary track, remux the desired track first.
+- Choose the dialogue track you will listen to. Track languages come from file metadata, not speech recognition.
+- Different dubs can change speech timing. Language-independent processing does not guarantee equal accuracy across all languages, dubs or edits.
 - Music, sparse speech, unrelated subtitles or different movie cuts can produce poor alignment.
 - Missing scenes and multiple discontinuities may need manual editing. This release applies one global transform.
 - No confidence percentage is claimed. The reported shift and scale describe the applied correction.
@@ -87,7 +96,7 @@ partially parsed subtitle file.
 
 ## Español
 
-### Qué hace
+### Sincronizar subtítulos SRT con video o audio
 
 Elige un video y su SRT. CueFlow detecta los intervalos en los que hay voces, los compara
 con los tiempos del subtítulo y calcula un desplazamiento y una corrección de velocidad.
@@ -97,10 +106,14 @@ por diferencias de fotogramas por segundo.
 El motor de sincronización es [ffsubsync](https://github.com/smacke/ffsubsync).
 [FFmpeg](https://ffmpeg.org/) lee el audio y WebRTC VAD detecta las voces.
 CueFlow añade una interfaz en español e inglés, arrastrar y soltar, opciones de
-codificación, cancelación, validación de archivos y guardado sin sobrescribir.
+codificación, selección de pistas de audio, cancelación, validación de archivos y guardado
+sin sobrescribir.
 
-Compara los tiempos de las voces, no el significado de las palabras. El video y los
-subtítulos pueden estar en idiomas diferentes. No traduce, genera subtítulos ni modifica
+Los idiomas del audio y del SRT son independientes del español e inglés de la interfaz.
+Compara los tiempos de las voces, no el significado de las palabras: puedes sincronizar
+audio japonés con subtítulos en español, audio inglés con texto árabe o audio francés
+con texto chino. No hay una lista de idiomas permitidos ni un modelo de transcripción
+por idioma. No traduce, genera subtítulos ni modifica
 el video. Tampoco garantiza precisión palabra por palabra: revisa una escena al inicio,
 a la mitad y al final.
 
@@ -112,10 +125,10 @@ y sus pruebas terminen correctamente.
 
 | Sistema | Archivo | Cómo abrirlo |
 | --- | --- | --- |
-| Windows 10/11, x64 | `CueFlow-1.0.0-windows-x64.zip` | Extrae todo el ZIP y ejecuta `CueFlow.exe`. |
-| macOS 12+, Apple Silicon | `CueFlow-1.0.0-macos-arm64.zip` | Extrae y abre `CueFlow.app`. |
-| macOS 12+, Intel | `CueFlow-1.0.0-macos-x64.zip` | Extrae y abre `CueFlow.app`. |
-| Linux x64, Ubuntu 22.04+ o compatible | `CueFlow-1.0.0-linux-x64.tar.gz` | Extrae y ejecuta `./CueFlow/CueFlow`. |
+| Windows 10/11, x64 | `CueFlow-1.1.0-windows-x64.zip` | Extrae todo el ZIP y ejecuta `CueFlow.exe`. |
+| macOS 12+, Apple Silicon | `CueFlow-1.1.0-macos-arm64.zip` | Extrae y abre `CueFlow.app`. |
+| macOS 12+, Intel | `CueFlow-1.1.0-macos-x64.zip` | Extrae y abre `CueFlow.app`. |
+| Linux x64, Ubuntu 22.04+ o compatible | `CueFlow-1.1.0-linux-x64.tar.gz` | Extrae y ejecuta `./CueFlow/CueFlow`. |
 
 Las descargas incluyen Python, las bibliotecas, FFmpeg y ffprobe. Conserva completa la
 carpeta extraída. Linux requiere un escritorio gráfico y sus bibliotecas habituales;
@@ -130,9 +143,10 @@ no incluye binarios para Android, iOS, Windows ARM ni Linux ARM.
 ### Cómo usarla
 
 1. Selecciona o arrastra el video y el archivo `.srt`.
-2. Elige la carpeta de destino. Por defecto se usa la del video.
-3. Pulsa **Sincronizar subtítulos**.
-4. Abre la carpeta del resultado y carga el nuevo SRT en tu reproductor.
+2. Elige la pista de diálogo; sus etiquetas de idioma y título ayudan a identificar cada doblaje.
+3. Elige la carpeta de destino. Por defecto se usa la del video.
+4. Pulsa **Sincronizar subtítulos**.
+5. Abre la carpeta del resultado y carga el nuevo SRT en tu reproductor.
 
 El resultado se llama `video.synced.srt`. Si ya existe, se guarda como
 `video.synced.1.srt`, después `.2.srt`, etc. Los originales se conservan.
@@ -147,11 +161,48 @@ diálogos. El resultado se guarda en UTF-8.
 ### Límites
 
 - Funciona mejor con la misma edición del video y un desfase fijo o progresivo uniforme.
-- Usa la primera pista de audio. Si quieres otra, prepara un archivo con esa pista primero.
+- Elige la pista de diálogo que vas a escuchar. Su idioma se lee de las etiquetas del archivo, no se reconoce por voz.
+- Los doblajes pueden cambiar los tiempos del diálogo. No se garantiza la misma precisión con todos los idiomas, doblajes o ediciones.
 - La música, pocas voces, subtítulos ajenos o cortes diferentes pueden empeorar el resultado.
 - Las escenas eliminadas y varios saltos de tiempo pueden requerir edición manual.
 - No muestra un porcentaje de precisión: el desfase y el factor indican la corrección aplicada.
 - El tiempo depende de la duración, el códec y el equipo. No se usan servicios de transcripción.
+
+## Subtitle synchronization FAQ / Preguntas frecuentes
+
+### Can I sync subtitles in another language?
+
+Yes. CueFlow aligns voice activity with subtitle timing, without understanding or
+translating the words. Audio and SRT languages do not need to match. The selected audio
+track must still correspond to the same scenes and edition as the subtitle file.
+
+### Does CueFlow translate subtitles or generate a dub?
+
+No. It changes SRT timestamps and can repair text encoding. It preserves dialogue and
+does not modify the audio or video. English and Spanish are the interface languages.
+
+### How do I fix subtitles that get further out of sync?
+
+Keep **Correct playback-speed differences** enabled for uniform timing drift, such as
+common 23.976/25 fps differences. A different movie cut or missing scenes may require
+manual editing; a single global timing correction cannot repair every discontinuity.
+
+### ¿Sirve para subtítulos en japonés, chino, árabe o ruso?
+
+Sí. Admite texto Unicode y permite elegir codificaciones antiguas como CP932/Shift JIS,
+GB18030, Big5, CP949 y Windows-1251/1256. Si la detección automática no acierta, selecciona
+la codificación en Opciones avanzadas. El resultado se guarda en UTF-8 y conserva el idioma.
+
+### ¿Puedo sincronizar un MKV con varios doblajes?
+
+Sí. Selecciona el MKV y elige la pista de diálogo que escucharás. Si falta la etiqueta de
+idioma, la aplicación muestra «Idioma no indicado»; no adivina el idioma. También acepta
+archivos de audio compatibles, como WAV, MP3, FLAC y MKA.
+
+### ¿Sube mis archivos a internet o cobra por minuto?
+
+No. La sincronización funciona en tu equipo. No requiere cuentas, claves de API ni
+servicios de transcripción. El tiempo de procesamiento depende del archivo y del hardware.
 
 ## Development / Desarrollo
 
@@ -164,6 +215,9 @@ Source runs need `ffmpeg` and `ffprobe` on `PATH` or a build in `vendor/ffmpeg`.
 Para ejecutar el código fuente necesitas `ffmpeg` y `ffprobe` en el `PATH` o compilados
 en `vendor/ffmpeg`.
 
+Command-line example: `uv run cueflow movie.mkv subtitles.srt --audio-track 2 --encoding utf-8`.
+`--audio-track` starts at 1 and refers to audio tracks, not all container streams.
+
 See [BUILDING.md](docs/BUILDING.md) for tests, native packaging and release instructions.
 Consulta [BUILDING.md](docs/BUILDING.md) para las pruebas, compilación y publicación.
 
@@ -175,3 +229,13 @@ See [THIRD_PARTY.md](THIRD_PARTY.md) and the bundled license notices.
 
 El código de CueFlow usa la licencia MIT. Sus dependencias conservan sus propias
 licencias. Consulta [THIRD_PARTY.md](THIRD_PARTY.md) y los avisos incluidos.
+
+## Help and feedback / Ayuda
+
+[Report a bug or request a feature](https://github.com/clls1-stinger/CueFlow/issues).
+Include your OS, CueFlow version and technical error details. Keep private media and
+credentials out of public reports. Maintained by [clls1-stinger](https://github.com/clls1-stinger).
+
+[Reporta un problema o sugiere una función](https://github.com/clls1-stinger/CueFlow/issues).
+Indica tu sistema, versión de CueFlow y detalles del error. Conserva tus archivos privados
+y credenciales fuera de los reportes públicos.

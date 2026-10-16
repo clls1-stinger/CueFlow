@@ -26,5 +26,5 @@ if sys.platform == 'darwin':
     app = BUNDLE(coll, name='CueFlow.app', icon=str(root / 'docs/assets/cueflow.icns'),
                  bundle_identifier='com.cueflow.desktop',
                  info_plist={'NSHighResolutionCapable': True,
-                             'CFBundleShortVersionString': '1.0.0',
+                             'CFBundleShortVersionString': '1.1.0',
                              'LSMinimumSystemVersion': '12.0'})

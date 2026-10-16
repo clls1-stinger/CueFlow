@@ -7,6 +7,7 @@ import dataclasses
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -35,6 +36,7 @@ class SyncRequest:
     repair_encoding: bool = True
     max_offset: int = 300
     fix_framerate: bool = True
+    audio_track: int = 0
 
 
 def ffmpeg_directory() -> Path:
@@ -53,12 +55,67 @@ def ffmpeg_directory() -> Path:
     raise SyncError("ffmpeg_missing")
 
 
+def audio_probe_command(video: Path) -> list[str]:
+    suffix = ".exe" if os.name == "nt" else ""
+    return [
+        str(ffmpeg_directory() / ("ffprobe" + suffix)),
+        "-v",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=index,codec_name,channels:stream_tags=language,title",
+        "-of",
+        "json",
+        str(video.resolve()),
+    ]
+
+
+def parse_audio_tracks(raw: str) -> list[dict]:
+    try:
+        streams = json.loads(raw)["streams"]
+        tracks = []
+        for index, stream in enumerate(streams):
+            tags = stream.get("tags", {})
+            tracks.append(
+                {
+                    "index": index,
+                    "language": str(tags.get("language", "und"))[:80],
+                    "title": str(tags.get("title", ""))[:160],
+                    "codec": str(stream.get("codec_name", "")),
+                    "channels": int(stream.get("channels", 0)),
+                }
+            )
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
+        raise SyncError("audio_probe_failed", str(exc)) from exc
+    if not tracks:
+        raise SyncError("audio_missing")
+    return tracks
+
+
+def probe_audio_tracks(video: Path) -> list[dict]:
+    try:
+        result = subprocess.run(
+            audio_probe_command(video),
+            capture_output=True,
+            timeout=20,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise SyncError("audio_probe_failed", str(exc)) from exc
+    if result.returncode:
+        raise SyncError("audio_probe_failed", result.stderr.decode("utf-8", errors="replace"))
+    return parse_audio_tracks(result.stdout.decode("utf-8", errors="replace"))
+
+
 def read_subtitles(path: Path, encoding: str, repair: bool) -> tuple[str, list, str, bool]:
     raw = path.read_bytes()
     if not raw or len(raw) > 20_000_000:
         raise SyncError("subtitle_invalid")
     if encoding == "auto":
-        if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        if raw.startswith((b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
+            encoding = "utf-32"
+        elif raw.startswith((b"\xff\xfe", b"\xfe\xff")):
             encoding = "utf-16"
         else:
             try:
@@ -125,6 +182,11 @@ def synchronize(request: SyncRequest, notify=lambda event: None) -> dict:
     if not 1 <= request.max_offset <= 3600:
         raise SyncError("offset_invalid")
     ffmpeg_dir = ffmpeg_directory()
+    tracks = probe_audio_tracks(video)
+    if type(request.audio_track) is not int or not 0 <= request.audio_track < len(tracks):
+        raise SyncError("audio_track_invalid")
+    selected_track = tracks[request.audio_track]
+    reference_stream = f"0:a:{request.audio_track}"
     text, entries, encoding, repaired = read_subtitles(
         subtitle, request.encoding, request.repair_encoding
     )
@@ -147,7 +209,7 @@ def synchronize(request: SyncRequest, notify=lambda event: None) -> dict:
             "--vad",
             "webrtc",
             "--reference-stream",
-            "0:a:0",
+            reference_stream,
             "--ffmpeg-path",
             str(ffmpeg_dir),
             "--max-offset-seconds",
@@ -170,7 +232,7 @@ def synchronize(request: SyncRequest, notify=lambda event: None) -> dict:
             frame_rate=48000,
             non_speech_label=0,
             ffmpeg_path=str(ffmpeg_dir),
-            ref_stream="0:a:0",
+            ref_stream=reference_stream,
             progress_handler=progress,
         ).fit_transform(str(video))
         if len(speech) < 100 or np.count_nonzero(speech) < 50:
@@ -205,6 +267,8 @@ def synchronize(request: SyncRequest, notify=lambda event: None) -> dict:
         "offset": result["offset_seconds"],
         "scale": result["framerate_scale_factor"],
         "elapsed": round(time.monotonic() - started, 2),
+        "audio_track": request.audio_track + 1,
+        "audio_language": selected_track["language"],
     }
 
 
@@ -229,6 +293,9 @@ def cli(argv: list[str]) -> int:
     parser.add_argument("subtitle")
     parser.add_argument("--output-dir")
     parser.add_argument("--encoding", default="auto")
+    parser.add_argument(
+        "--audio-track", type=int, default=1, help="Audio track number (starts at 1)"
+    )
     args = parser.parse_args(argv)
     result = synchronize(
         SyncRequest(
@@ -236,6 +303,7 @@ def cli(argv: list[str]) -> int:
             args.subtitle,
             args.output_dir or str(Path(args.video).resolve().parent),
             encoding=args.encoding,
+            audio_track=args.audio_track - 1,
         )
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
