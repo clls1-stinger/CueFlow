@@ -5,6 +5,11 @@ import sys
 
 
 def main():
+    import multiprocessing
+
+    # Frozen resource-tracker children must not start another GUI. On macOS,
+    # the worker otherwise waits for that child forever during interpreter exit.
+    multiprocessing.freeze_support()
     if len(sys.argv) > 1 and sys.argv[1] == "--worker":
         if os.environ.get("CUEFLOW_DIAGNOSTICS") == "1":
             import faulthandler
