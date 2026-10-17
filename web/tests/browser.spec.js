@@ -62,7 +62,7 @@ test('desktop downloads expose real platform builds and hardware suggestions', a
   await page.goto('/');
   await expect(page.locator('.download-option')).toHaveCount(4);
   for (const link of await page.locator('.download-option').all()) {
-    await expect(link).toHaveAttribute('href', /github\.com\/clls1-stinger\/CueFlow\/releases\/download\/v1\.1\.0\/CueFlow-1\.1\.0-/);
+    await expect(link).toHaveAttribute('href', /github\.com\/clls1-stinger\/CueFlow\/releases\/download\/v1\.2\.0\/CueFlow-1\.2\.0-/);
     await expect(link.locator('img')).toHaveAttribute('alt','CueFlow');
   }
   await page.locator('.recommendations summary').click(); await expect(page.locator('.spec-list')).toContainText('4 GB');
