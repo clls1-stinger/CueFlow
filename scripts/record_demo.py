@@ -18,7 +18,7 @@ from cueflow.smoke import multitrack_fixture
 
 app = QApplication(sys.argv)
 window = Window()
-window.resize(840, 1100)
+window.resize(840, 780)
 window.show()
 frames, durations = [], []
 
@@ -43,6 +43,8 @@ with tempfile.TemporaryDirectory(prefix="cueflow-demo-") as workspace:
         window.open_button.hide()
         for _, field, _ in window.fields.values():
             field.clear()
+        window.paths.clear()
+        window.pages.setCurrentIndex(0)
         window.audio_tracks = []
         window.refresh_audio_tracks()
         window.refresh_status()

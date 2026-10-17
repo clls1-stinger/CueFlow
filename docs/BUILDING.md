@@ -63,16 +63,17 @@ docker rm cueflow-artifacts
 
 ### Publish
 
-After all checks pass, push a version tag matching `pyproject.toml` and `scripts/package.py`:
+Push `main` and wait for all four native builds to pass. Publish those exact artifacts
+without rebuilding them by dispatching the publication workflow with the successful run ID:
 
 ```bash
-git tag v1.2.0
-git push origin main v1.2.0
+gh workflow run publish-existing.yml --ref main -f run_id=SUCCESSFUL_BUILD_RUN_ID
 ```
 
-The release job waits for every matrix build, then publishes all archives, SHA-256
-files and the exact FFmpeg source archive to the tagged GitHub Release. The workflow
-uses GitHub's repository-scoped token; no private API key belongs in the repository.
+The workflow verifies the source commit and archive checksums, then publishes the version
+from `pyproject.toml` (currently `1.3.0`). It attaches all four archives, their SHA-256
+files and the exact FFmpeg source archive. It uses GitHub's repository-scoped token;
+no private API key belongs in the repository. It refuses to replace a published release.
 
 ### Demo assets
 
@@ -81,9 +82,8 @@ uv run python scripts/make_icon.py
 QT_QPA_PLATFORM=offscreen uv run python scripts/record_demo.py
 ```
 
-The recording drives the actual application with generated fixtures. It does not show
-a simulated success state. The timeline at the top of the window is a schematic logo
-element, not a visualization of the user's audio.
+The recording drives the actual application with generated fixtures, from the task
+chooser through file selection to a completed synchronization.
 
 ## Español
 
@@ -101,9 +101,10 @@ y abre cada binario en modo de comprobación antes de preparar los archivos desc
 Los comandos de compilación, el entorno MSYS2 de Windows y las bibliotecas necesarias
 en Linux están descritos arriba y en `.github/workflows/build.yml`.
 
-Para publicar, sube `main` y una etiqueta como `v1.2.0`. El trabajo de publicación espera
-a que todas las plataformas pasen sus pruebas. Después adjunta los paquetes, sus sumas
-SHA-256 y el código fuente exacto de FFmpeg a GitHub Releases.
+Para publicar, sube `main` y espera a que pasen las cuatro compilaciones. Ejecuta
+`publish-existing.yml` con el ID de esa ejecución usando el comando anterior. Publica
+los mismos paquetes ya comprobados, sus sumas SHA-256 y el código fuente exacto de FFmpeg.
+La versión se toma de `pyproject.toml`; una publicación existente no se reemplaza.
 
 El GIF se graba con `scripts/record_demo.py`: usa la aplicación real y archivos de prueba
 originales. No necesita ni incorpora películas o subtítulos aportados por usuarios.

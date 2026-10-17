@@ -96,7 +96,7 @@ jobs:
         with:
           name: CueFlow-${{ matrix.platform }}
           path: |
-            dist/CueFlow-1.2.0-*
+            dist/CueFlow-1.3.0-*
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: matrix.platform == 'linux-x64'

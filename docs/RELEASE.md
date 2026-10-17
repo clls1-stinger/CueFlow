@@ -1,35 +1,25 @@
 ## English
 
-CueFlow 1.2.0 adds Google subtitle translation, a local editor and six-format conversion.
+CueFlow 1.3.0 makes the desktop app easier to navigate.
 
-- Translate with Google's public Website Translator widget, without API keys or an LLM gateway.
-- Choose from 249 language options captured from Google; availability is checked during translation.
-- Load up to 20 files / 1 MB: SRT, VTT, ASS, SBV, SubViewer SUB and text Spruce STL.
-- Keep timestamps and formatting markers, review original and translated dialogue, edit times/text, and export one file or a ZIP.
-- Cancel and resume batches without losing completed work in the current session.
-- Synchronization, editing and conversion work offline. Translation requires internet and consent to send text to Google.
+- Search OpenSubtitles by title in your browser, then return to open the downloaded subtitle. No OpenSubtitles credentials are stored in CueFlow.
+- Start with your goal: fix subtitle timing, translate into another language, or edit text and change formats.
+- Follow the translation steps: open files, choose a language, then review and save a copy.
+- Find languages by typing. Technical import settings, timestamp editing and format conversion stay folded until needed.
+- See a clear distinction between a finished translation, unsaved edits and a saved file. Open the saved file's folder directly.
+- Keep existing Google translation, batch processing, cancellation, retry and offline synchronization/editing.
 
-Choose your OS and processor, extract the entire archive, and open CueFlow. The app
-includes Python, FFmpeg, ffprobe and Qt WebEngine. Builds are unsigned; macOS builds
-are not notarized. The browser runtime makes downloads larger than 1.1.0. See the
-README and BUILDING guide for system libraries and installation help.
-
-The release pipeline tests native synchronization and the packaged browser runtime.
-The Google widget is an external service and can change or become unavailable. No
-accuracy guarantee across all languages is made. Check the adjacent SHA-256 file.
+Google translation requires internet and consent to send dialogue text. The original subtitle file is kept when saving the suggested copy. Choose the download for your operating system and processor, extract the entire archive and open CueFlow. Builds are unsigned; macOS builds are not notarized. Check the adjacent SHA-256 file.
 
 ## Español
 
-CueFlow 1.2.0 añade traducción con Google, editor local y conversión de seis formatos.
+CueFlow 1.3.0 organiza la app de escritorio alrededor de lo que quieres hacer.
 
-- Traduce con el widget público de Google Translate, sin claves de API ni Makima.
-- Elige entre 249 opciones de idioma observadas en Google; se comprueba su disponibilidad al traducir.
-- Abre hasta 20 archivos / 1 MB: SRT, VTT, ASS, SBV, SubViewer SUB y Spruce STL de texto.
-- Conserva los tiempos y etiquetas, compara el original con la traducción, edita los diálogos y descarga un archivo o ZIP.
-- Cancela y continúa sin perder los bloques terminados durante la sesión.
-- Sincronizar, editar y convertir funciona sin conexión. Traducir requiere internet y aceptar enviar el texto a Google.
+- Busca por título en OpenSubtitles desde tu navegador y vuelve para abrir el subtítulo descargado. CueFlow no guarda credenciales de OpenSubtitles.
+- Elige entre ajustar los tiempos, traducir a otro idioma o editar el texto y cambiar el formato.
+- Traduce en tres pasos: abre los archivos, elige el idioma y revisa el texto antes de guardar una copia.
+- Busca idiomas escribiendo su nombre. Los ajustes técnicos, la edición de tiempos y el cambio de formato aparecen cuando los necesitas.
+- Distingue entre traducción terminada, cambios sin guardar y archivo guardado. Abre su carpeta desde la app.
+- Conserva Google Translate, los lotes, detener y continuar, y la sincronización y edición sin conexión.
 
-Extrae el paquete completo correspondiente a tu sistema. Incluye Python, FFmpeg,
-ffprobe y Qt WebEngine. Las compilaciones no tienen firma de editor y macOS no está
-notarizado. El navegador integrado aumenta el tamaño respecto a 1.1.0. Google puede
-cambiar o interrumpir su widget; revisa las traducciones antes de usarlas.
+Traducir necesita internet y aceptar el envío de diálogos a Google. El original se conserva al guardar la copia sugerida. Extrae todo el paquete de tu sistema y abre CueFlow. Las compilaciones no tienen firma de editor y macOS no está notarizado.

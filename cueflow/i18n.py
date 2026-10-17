@@ -116,3 +116,70 @@ TEXT = {
         "drop": "También puedes arrastrar los archivos a esta ventana.",
     },
 }
+
+
+# Task-oriented desktop copy. Engine error identifiers remain stable.
+TEXT["es"].update({
+    "home_title": "¿Qué quieres hacer?",
+    "home_intro": "Elige lo que necesitas. Te guiamos hasta guardar el resultado.",
+    "choose_sync": "Ajustar los tiempos\nEl texto aparece antes o después de las voces.",
+    "choose_translate": "Traducir a otro idioma\nYa tienes los subtítulos y quieres entenderlos.",
+    "choose_edit": "Editar texto o cambiar formato\nCorrige frases o prepara otro tipo de archivo.",
+    "home_note": "Necesitas un archivo de subtítulos. Para ajustar los tiempos, también el video.\nTraducir usa Google e internet. Ajustar y editar funcionan sin conexión.",
+    "back_home": "← Inicio",
+    "tagline": "Haz que el texto coincida con las voces",
+    "intro": "Elige el video y sus subtítulos. CueFlow ajustará cuándo aparece cada frase.",
+    "local": "AJUSTAR LOS TIEMPOS",
+    "video": "1. Elige tu video",
+    "subtitle": "2. Elige los subtítulos de ese video",
+    "video_hint": "Todavía no has elegido un video",
+    "subtitle_hint": "Un archivo de subtítulos terminado en .srt",
+    "choose_video": "Elegir video",
+    "choose_subtitle": "Elegir subtítulos",
+    "choose_output": "Cambiar carpeta",
+    "advanced": "Más opciones (normalmente no necesitas cambiarlas)",
+    "audio_track": "¿Qué audio escuchas? Elige la pista de diálogo.",
+    "sync": "Ajustar los tiempos",
+    "safe": "Se guardará una copia junto al video. Tus archivos originales se conservan.",
+    "pick_video_next": "Empieza por elegir el video. También puedes arrastrarlo aquí.",
+    "pick_subtitle_next": "Ahora elige los subtítulos que quieres ajustar.",
+    "ready_to_sync": "Todo listo. Pulsa Ajustar los tiempos.",
+    "review": "Abre la carpeta y carga la copia en tu reproductor. Revisa una escena al inicio, a la mitad y al final.",
+    "open": "Abrir la carpeta del archivo guardado",
+    "done": "Listo. Tu copia ya está guardada.",
+})
+TEXT["en"].update({
+    "home_title": "What would you like to do?",
+    "home_intro": "Choose your task. We will guide you through saving the result.",
+    "choose_sync": "Fix the timing\nThe words appear before or after the voices.",
+    "choose_translate": "Translate into another language\nYou have subtitles and want to understand them.",
+    "choose_edit": "Edit text or change format\nCorrect a phrase or save a different file type.",
+    "home_note": "You need a subtitle file. To fix timing, you also need the video.\nTranslation uses Google and the internet. Timing and editing work offline.",
+    "back_home": "← Home",
+    "tagline": "Make the words match the voices",
+    "intro": "Choose the video and its subtitles. CueFlow adjusts when each line appears.",
+    "local": "FIX THE TIMING",
+    "video": "1. Choose your video",
+    "subtitle": "2. Choose the subtitles for that video",
+    "video_hint": "No video selected yet",
+    "subtitle_hint": "A subtitle file ending in .srt",
+    "choose_video": "Choose video",
+    "choose_subtitle": "Choose subtitles",
+    "choose_output": "Change folder",
+    "advanced": "More options (you can usually leave these as they are)",
+    "audio_track": "Which audio do you listen to? Choose a dialogue track.",
+    "sync": "Fix the timing",
+    "safe": "A copy will be saved next to the video. Your original files are kept.",
+    "pick_video_next": "Start by choosing your video. You can also drag it here.",
+    "pick_subtitle_next": "Now choose the subtitles you want to adjust.",
+    "ready_to_sync": "Ready. Click Fix the timing.",
+    "review": "Open the folder and load the copy in your player. Check a scene near the beginning, middle and end.",
+    "open": "Open the saved file's folder",
+    "done": "Done. Your copy has been saved.",
+})
+
+TEXT["es"]["copy_folder"] = "La copia se guardará en: "
+TEXT["en"]["copy_folder"] = "The copy will be saved in: "
+
+TEXT["es"]["find_subtitles"] = "¿No tienes subtítulos? Buscar en OpenSubtitles ↗"
+TEXT["en"]["find_subtitles"] = "Need subtitles? Search OpenSubtitles ↗"

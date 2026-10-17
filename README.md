@@ -17,6 +17,14 @@ voces del video. También traduce con Google Translate y permite editar o conver
 [Download / Descargar](https://github.com/clls1-stinger/CueFlow/releases/latest) ·
 [English](#english) · [Español](#español) · [Build from source](docs/BUILDING.md)
 
+**Need a subtitle file?** Use “Search OpenSubtitles” in the desktop app. Review the suggested movie title, search in your browser, choose a language on the site and download. Then return to CueFlow and open the file. Login and download availability are managed by OpenSubtitles; this is a browser handoff, not an automatic downloader.
+
+**¿Te falta el archivo?** Usa «Buscar en OpenSubtitles». Revisa el título, busca y descarga desde tu navegador; después abre el archivo en CueFlow. Si viene en ZIP, extráelo primero. El acceso y las descargas dependen de OpenSubtitles.
+
+The desktop app now starts with three everyday tasks: **fix timing**, **translate**, and **edit text or change format**. Translation guides you through opening files, choosing a language, and reviewing and saving a copy. Technical options stay folded until needed.
+
+La app de escritorio empieza con tres tareas: **ajustar los tiempos**, **traducir** y **editar texto o cambiar formato**. Te guía hasta guardar una copia; las opciones técnicas quedan plegadas.
+
 ![Actual CueFlow interface: select files, synchronize and view the result in English and Spanish](docs/assets/demo.gif)
 
 The GIF records the actual application using an original synthetic audio fixture.
@@ -116,10 +124,10 @@ Release automation publishes the downloads only after all four builds and their 
 
 | Platform | File | How to open |
 | --- | --- | --- |
-| Windows 10/11, x64 | `CueFlow-1.2.0-windows-x64.zip` | Extract the whole ZIP; run `CueFlow.exe`. |
-| macOS 12+, Apple Silicon | `CueFlow-1.2.0-macos-arm64.zip` | Extract and open `CueFlow.app`. |
-| macOS 12+, Intel | `CueFlow-1.2.0-macos-x64.zip` | Extract and open `CueFlow.app`. |
-| Linux x64, Ubuntu 22.04+ or compatible | `CueFlow-1.2.0-linux-x64.tar.gz` | Extract; run `./CueFlow/CueFlow`. |
+| Windows 10/11, x64 | `CueFlow-1.3.0-windows-x64.zip` | Extract the whole ZIP; run `CueFlow.exe`. |
+| macOS 12+, Apple Silicon | `CueFlow-1.3.0-macos-arm64.zip` | Extract and open `CueFlow.app`. |
+| macOS 12+, Intel | `CueFlow-1.3.0-macos-x64.zip` | Extract and open `CueFlow.app`. |
+| Linux x64, Ubuntu 22.04+ or compatible | `CueFlow-1.3.0-linux-x64.tar.gz` | Extract; run `./CueFlow/CueFlow`. |
 
 The downloads include Python, the application libraries, FFmpeg and ffprobe. Keep the
 extracted folder together. Linux still needs a graphical desktop and standard OpenGL,
@@ -191,10 +199,10 @@ y sus pruebas terminen correctamente.
 
 | Sistema | Archivo | Cómo abrirlo |
 | --- | --- | --- |
-| Windows 10/11, x64 | `CueFlow-1.2.0-windows-x64.zip` | Extrae todo el ZIP y ejecuta `CueFlow.exe`. |
-| macOS 12+, Apple Silicon | `CueFlow-1.2.0-macos-arm64.zip` | Extrae y abre `CueFlow.app`. |
-| macOS 12+, Intel | `CueFlow-1.2.0-macos-x64.zip` | Extrae y abre `CueFlow.app`. |
-| Linux x64, Ubuntu 22.04+ o compatible | `CueFlow-1.2.0-linux-x64.tar.gz` | Extrae y ejecuta `./CueFlow/CueFlow`. |
+| Windows 10/11, x64 | `CueFlow-1.3.0-windows-x64.zip` | Extrae todo el ZIP y ejecuta `CueFlow.exe`. |
+| macOS 12+, Apple Silicon | `CueFlow-1.3.0-macos-arm64.zip` | Extrae y abre `CueFlow.app`. |
+| macOS 12+, Intel | `CueFlow-1.3.0-macos-x64.zip` | Extrae y abre `CueFlow.app`. |
+| Linux x64, Ubuntu 22.04+ o compatible | `CueFlow-1.3.0-linux-x64.tar.gz` | Extrae y ejecuta `./CueFlow/CueFlow`. |
 
 Las descargas incluyen Python, las bibliotecas, FFmpeg y ffprobe. Conserva completa la
 carpeta extraída. Linux requiere un escritorio gráfico y sus bibliotecas habituales;

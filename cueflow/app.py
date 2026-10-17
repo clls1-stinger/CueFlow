@@ -10,7 +10,7 @@ from pathlib import Path
 
 import psutil
 from PySide6.QtCore import QLocale, QProcess, QProcessEnvironment, QSettings, Qt, QTimer, QUrl
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QPainter, QPen
+from PySide6.QtGui import QDesktopServices, QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSpinBox,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -41,6 +42,10 @@ QLabel { background: transparent; }
 QLabel[role="muted"] { color: #a6abb4; }
 QLabel[role="eyebrow"] { color: #a6abb4; font-size: 11px; letter-spacing: 2px; }
 QLabel[role="title"] { font-size: 32px; font-weight: 500; }
+QLabel[role="step"] { font-size: 18px; font-weight: 600; }
+QPushButton[role="choice"] { text-align: left; padding: 20px; border-radius: 10px; font-size: 17px; }
+QTableWidget { background: #141516; alternate-background-color: #1c1c1f; gridline-color: #34343a; border: 1px solid #34343a; }
+QHeaderView::section { background: #23252a; color: #f7f8f8; padding: 10px; border: none; }
 QLabel[role="brand"] { font-size: 20px; font-weight: 600; }
 QLineEdit, QComboBox, QSpinBox, QPlainTextEdit {
  background: #141516; border: 1px solid #34343a; border-radius: 8px;
@@ -76,33 +81,26 @@ def label(text="", role=None):
     return widget
 
 
-class Timeline(QWidget):
-    """An explicitly schematic pair of cue tracks, never a fake measured waveform."""
+class TaskButton(QPushButton):
+    """A keyboard-operable task choice with a short, readable explanation."""
 
     def __init__(self):
         super().__init__()
-        self.setFixedHeight(54)
-        self.setAccessibleName("CueFlow subtitle alignment diagram")
+        self.setProperty("role", "choice")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 14, 20, 14)
+        layout.setSpacing(6)
+        self.heading = label(role="step")
+        self.description = label(role="muted")
+        for child in (self.heading, self.description):
+            child.setAttribute(Qt.WA_TransparentForMouseEvents)
+            layout.addWidget(child)
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QPen(QColor("#34343a"), 1))
-        for y in (17, 39):
-            painter.drawLine(0, y, self.width(), y)
-        for y, shift, color in [(11, 28, "#52565f"), (33, 0, "#d0d6e0")]:
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(QColor(color))
-            for start, width in [
-                (0.05, 0.13),
-                (0.23, 0.09),
-                (0.39, 0.19),
-                (0.65, 0.12),
-                (0.84, 0.08),
-            ]:
-                painter.drawRoundedRect(
-                    int(start * self.width()) + shift, y, int(width * self.width()), 12, 3, 3
-                )
+    def setCopy(self, text):
+        heading, description = text.split("\n", 1)
+        self.heading.setText(heading)
+        self.description.setText(description)
+        self.setAccessibleName(heading + ". " + description)
 
 
 class Window(QMainWindow):
@@ -130,7 +128,8 @@ class Window(QMainWindow):
         root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
         self.setWindowIcon(QIcon(str(root / "docs/assets/cueflow.png")))
         self.setMinimumSize(660, 580)
-        self.resize(820, 820)
+        self.resize(800, 720)
+        self.paths = {}
         self.setAcceptDrops(True)
         self.setStyleSheet(STYLE)
         body = QWidget()
@@ -153,6 +152,38 @@ class Window(QMainWindow):
         self.language.currentIndexChanged.connect(self.change_language)
         top.addWidget(self.language)
         layout.addLayout(top)
+        self.pages = QStackedWidget()
+        layout.addWidget(self.pages)
+        home = QWidget()
+        home_layout = QVBoxLayout(home)
+        home_layout.setContentsMargins(0, 24, 0, 0)
+        home_layout.setSpacing(18)
+        self.home_title = label(role="title")
+        self.home_intro = label(role="muted")
+        home_layout.addWidget(self.home_title)
+        home_layout.addWidget(self.home_intro)
+        self.choices = []
+        for callback in (self.show_sync, lambda: self.open_editor("translate"), lambda: self.open_editor("edit")):
+            button = TaskButton()
+            button.setMinimumHeight(90)
+            button.clicked.connect(callback)
+            home_layout.addWidget(button)
+            self.choices.append(button)
+        self.search_button = QPushButton()
+        self.search_button.clicked.connect(self.open_search)
+        home_layout.addWidget(self.search_button, alignment=Qt.AlignLeft)
+        self.home_note = label(role="muted")
+        home_layout.addWidget(self.home_note)
+        home_layout.addStretch()
+        self.pages.addWidget(home)
+        sync_page = QWidget()
+        self.pages.addWidget(sync_page)
+        layout = QVBoxLayout(sync_page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+        self.back_button = QPushButton()
+        self.back_button.clicked.connect(lambda: self.pages.setCurrentIndex(0))
+        layout.addWidget(self.back_button, alignment=Qt.AlignLeft)
         self.local = label(role="eyebrow")
         layout.addWidget(self.local)
         self.title = label(role="title")
@@ -161,9 +192,9 @@ class Window(QMainWindow):
         layout.addWidget(self.intro)
         self.editor_button = QPushButton()
         self.editor_button.clicked.connect(self.open_editor)
-        layout.addWidget(self.editor_button, alignment=Qt.AlignLeft)
-        layout.addWidget(Timeline())
+        self.editor_button.hide()
         self.fields = {}
+        self.file_rows = {}
         for key in ("video", "subtitle", "output"):
             caption = label()
             layout.addWidget(caption)
@@ -175,7 +206,11 @@ class Window(QMainWindow):
             button.clicked.connect(lambda checked=False, name=key: self.browse(name))
             row.addWidget(field, 1)
             row.addWidget(button)
-            layout.addLayout(row)
+            row_widget = QWidget()
+            row.setContentsMargins(0, 0, 0, 0)
+            row_widget.setLayout(row)
+            layout.addWidget(row_widget)
+            self.file_rows[key] = row_widget
             caption.setBuddy(field)
             self.fields[key] = (caption, field, button)
             if key == "video":
@@ -184,11 +219,15 @@ class Window(QMainWindow):
                 self.audio_label.setBuddy(self.audio)
                 layout.addWidget(self.audio_label)
                 layout.addWidget(self.audio)
+        self.search_sync = QPushButton()
+        self.search_sync.clicked.connect(self.open_search)
+        layout.addWidget(self.search_sync, alignment=Qt.AlignLeft)
         self.advanced = QCheckBox()
         layout.addWidget(self.advanced)
         self.advanced_panel = QWidget()
         form = QFormLayout(self.advanced_panel)
         form.setContentsMargins(0, 0, 0, 0)
+        form.addRow(self.fields["output"][0], self.file_rows["output"])
         self.encoding_label = label()
         self.encoding = QComboBox()
         for name, value in [
@@ -271,10 +310,20 @@ class Window(QMainWindow):
     def t(self, key):
         return TEXT[self.lang].get(key, TEXT[self.lang]["unexpected"])
 
-    def open_editor(self):
+    def open_search(self):
+        from cueflow.search import SubtitleSearch
+
+        dialog = SubtitleSearch(self.lang, self.paths.get("video", ""), lambda: self.browse("subtitle"), self)
+        dialog.exec()
+
+    def show_sync(self):
+        self.pages.setCurrentIndex(1)
+        self.refresh_status()
+
+    def open_editor(self, mode="translate"):
         from cueflow.editor import SubtitleEditor
 
-        dialog = SubtitleEditor(self.lang, self)
+        dialog = SubtitleEditor(self.lang, self, mode=mode)
         dialog.exec()
 
     def change_language(self):
@@ -283,6 +332,13 @@ class Window(QMainWindow):
         self.retranslate()
 
     def retranslate(self):
+        for button in (self.search_button, self.search_sync):
+            button.setText(self.t("find_subtitles"))
+        for widget, key in [(self.home_title, "home_title"), (self.home_intro, "home_intro"),
+                            (self.home_note, "home_note"), (self.back_button, "back_home")]:
+            widget.setText(self.t(key))
+        for button, key in zip(self.choices, ("choose_sync", "choose_translate", "choose_edit")):
+            button.setCopy(self.t(key))
         self.editor_button.setText("Traducir y editar subtítulos" if self.lang == "es" else "Translate & edit subtitles")
         for widget, key in [
             (self.title, "tagline"),
@@ -309,14 +365,14 @@ class Window(QMainWindow):
         for key, (caption, field, button) in self.fields.items():
             caption.setText(self.t(key))
             field.setAccessibleName(self.t(key))
-            button.setText(self.t("browse"))
+            button.setText(self.t("choose_" + key))
             button.setAccessibleName(self.t(key) + " · " + self.t("browse"))
             field.setPlaceholderText(self.t(key + "_hint") if key != "output" else self.t("output"))
         self.refresh_status()
 
     def browse(self, key):
         if key == "output":
-            path = QFileDialog.getExistingDirectory(self, self.t(key), self.fields[key][1].text())
+            path = QFileDialog.getExistingDirectory(self, self.t(key), self.paths.get(key, ""))
         else:
             filters = (
                 "SubRip (*.srt);;All files (*)"
@@ -329,11 +385,19 @@ class Window(QMainWindow):
 
     def set_file(self, key, path):
         path = str(Path(path).resolve())
-        self.fields[key][1].setText(path)
+        if self.busy():
+            return
+        self.show_sync()
+        self.paths[key] = path
+        self.result, self.error_code, self.phase = None, None, "ready"
+        self.open_button.hide()
+        self.fields[key][1].setText(path if key == "output" else Path(path).name)
         self.fields[key][1].setToolTip(path)
         if key == "video":
-            self.fields["output"][1].setText(str(Path(path).parent))
+            self.paths["output"] = str(Path(path).parent)
+            self.fields["output"][1].setText(self.paths["output"])
             self.load_audio_tracks(path)
+        self.refresh_status()
 
     def refresh_audio_tracks(self):
         selected = self.audio.currentData()
@@ -351,8 +415,6 @@ class Window(QMainWindow):
             parts = [self.t("track_number").format(number=track["index"] + 1), name]
             if track["title"]:
                 parts.append(track["title"])
-            if track["codec"]:
-                parts.append(track["codec"])
             self.audio.addItem(" · ".join(parts), track["index"])
         if not self.audio_tracks:
             self.audio.addItem(self.t("probing" if self.probe else "choose_media"), None)
@@ -360,6 +422,8 @@ class Window(QMainWindow):
         if index >= 0:
             self.audio.setCurrentIndex(index)
         self.audio.setEnabled(bool(self.audio_tracks) and not self.busy())
+        self.audio_label.setVisible(len(self.audio_tracks) > 1)
+        self.audio.setVisible(len(self.audio_tracks) > 1)
 
     def stop_probe(self):
         self.probe_timer.stop()
@@ -444,7 +508,7 @@ class Window(QMainWindow):
         self.open_button.hide()
         self.details.clear()
         self.summary.clear()
-        if not all(Path(self.fields[k][1].text()).is_file() for k in ("video", "subtitle")):
+        if not all(Path(self.paths.get(k, "")).is_file() for k in ("video", "subtitle")):
             self.error_code = "input_missing"
             self.refresh_status()
             return
@@ -453,9 +517,9 @@ class Window(QMainWindow):
             self.refresh_status()
             return
         request = SyncRequest(
-            self.fields["video"][1].text(),
-            self.fields["subtitle"][1].text(),
-            self.fields["output"][1].text(),
+            self.paths.get("video", ""),
+            self.paths.get("subtitle", ""),
+            self.paths.get("output", ""),
             self.encoding.currentData(),
             self.repair.isChecked(),
             self.max_offset.value(),
@@ -486,6 +550,8 @@ class Window(QMainWindow):
         self.refresh_status()
 
     def set_busy(self, busy):
+        self.back_button.setEnabled(not busy)
+        self.search_sync.setEnabled(not busy)
         self.sync_button.setEnabled(not busy)
         self.advanced.setEnabled(not busy)
         self.advanced_panel.setEnabled(not busy)
@@ -539,6 +605,7 @@ class Window(QMainWindow):
         self.progress.setRange(0, 100)
         self.progress.setValue(100 if self.result else 0)
         if self.result:
+            self.details.appendPlainText(self.t("result").format(**self.result))
             self.phase = "done"
             self.error_code = None
             self.open_button.show()
@@ -552,13 +619,22 @@ class Window(QMainWindow):
         self.refresh_status()
 
     def refresh_status(self):
+        busy = self.busy()
+        ready = all(Path(self.paths.get(k, "")).is_file() for k in ("video", "subtitle"))
+        self.sync_button.setEnabled(ready and not busy and not self.probe and not self.audio_error and self.audio.currentData() is not None)
+        self.progress.setVisible(busy)
+        self.details_toggle.setVisible(bool(self.result or self.error_code or busy or self.details.toPlainText()))
+        self.safe.setText(self.t("safe"))
+        if self.paths.get("output") and self.paths.get("video") and self.paths["output"] != str(Path(self.paths["video"]).parent):
+            self.safe.setText(self.t("copy_folder") + self.paths["output"])
         self.status.setText(self.t(self.error_code or self.phase))
+        if self.phase == "ready" and not self.error_code:
+            key = "pick_video_next" if not self.paths.get("video") else "pick_subtitle_next" if not self.paths.get("subtitle") else "probing" if self.probe else "ready_to_sync"
+            self.status.setText(self.t(key))
         if self.result:
             self.summary.setMinimumHeight(76)
             self.summary.setText(
-                self.t("result").format(**self.result)
-                + "\n"
-                + Path(self.result["output"]).name
+                Path(self.result["output"]).name
                 + "\n"
                 + self.t("review")
             )
@@ -569,7 +645,7 @@ class Window(QMainWindow):
             )
         else:
             self.summary.setMinimumHeight(22)
-            self.summary.setText(self.t("drop") if self.phase == "ready" else "")
+            self.summary.setText("")
 
     def cancel(self):
         if not self.busy():
