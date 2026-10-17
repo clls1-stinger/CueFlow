@@ -3,7 +3,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
-    if (url.pathname === '/google-translate.html') {
+    if (['/google-translate.html', '/google-translate'].includes(url.pathname)) {
       const response = await env.ASSETS.fetch(request);
       const headers = new Headers(response.headers);
       headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://*.google.com https://*.googleapis.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://*.googleapis.com https://*.gstatic.com; connect-src https://*.google.com https://*.googleapis.com https://*.googleusercontent.com; img-src 'self' data: https://*.google.com https://*.gstatic.com https://*.googleapis.com; font-src https://*.gstatic.com; frame-src 'self' https://*.google.com; object-src 'none'; base-uri 'none'; form-action 'none'");

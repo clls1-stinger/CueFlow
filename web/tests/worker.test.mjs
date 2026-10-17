@@ -11,3 +11,11 @@ test('download redirect points at the actual public repository', async () => {
   const result = await worker.fetch(new Request('https://example.com/download'),{});
   assert.equal(result.status,302);assert.equal(result.headers.get('Location'),'https://github.com/clls1-stinger/CueFlow/releases/latest');
 });
+
+test('Google document has its own CSP on both Pages canonical paths', async () => {
+  for (const path of ['/google-translate.html','/google-translate']) {
+    const response=await worker.fetch(new Request('https://example.com'+path),{ASSETS:{fetch:()=>new Response('widget',{headers:{'Content-Security-Policy':"default-src 'self'; frame-ancestors 'none'"}})}});
+    assert.match(response.headers.get('Content-Security-Policy'),/https:\/\/\*\.google\.com/);
+    assert.doesNotMatch(response.headers.get('Content-Security-Policy'),/frame-ancestors 'none'/);
+  }
+});

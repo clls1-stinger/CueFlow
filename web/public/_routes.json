@@ -3,7 +3,8 @@
   "include": [
     "/api/*",
     "/download",
-    "/google-translate.html"
+    "/google-translate.html",
+    "/google-translate"
   ],
   "exclude": []
 }
