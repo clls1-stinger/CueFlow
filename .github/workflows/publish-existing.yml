@@ -1,0 +1,87 @@
+name: Publish a verified desktop build
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful main-branch Build and release run ID
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: cueflow-desktop-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ inputs.run_id }}
+    steps:
+      - name: Verify trusted successful build
+        id: build
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          run_id = os.environ['RUN_ID']
+          assert re.fullmatch(r'[0-9]+', run_id), 'Invalid run ID'
+          repo = os.environ['GH_REPO']
+          def api(path):
+              return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/{path}']))
+          run = api(f'actions/runs/{run_id}')
+          assert run['conclusion'] == 'success' and run['status'] == 'completed'
+          assert run['head_branch'] == 'main' and run['event'] == 'push'
+          assert run['path'] == '.github/workflows/build.yml'
+          assert run['head_repository']['full_name'] == repo
+          jobs = api(f'actions/runs/{run_id}/jobs')['jobs']
+          builds = [job for job in jobs if job['name'].startswith('build (')]
+          assert len(builds) == 4 and all(job['conclusion'] == 'success' for job in builds)
+          sha = run['head_sha']
+          assert re.fullmatch(r'[a-f0-9]{40}', sha)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'sha={sha}\n')
+          print(f'All four native builds passed at {sha}')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.build.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: release-assets
+          merge-multiple: true
+      - name: Verify archives and publish
+        env:
+          BUILD_SHA: ${{ steps.build.outputs.sha }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, subprocess, tomllib
+          version = tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version']
+          assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version)
+          tag = 'v' + version
+          root = pathlib.Path('release-assets')
+          names = {f'CueFlow-{version}-{platform}.{extension}' for platform, extension in [
+              ('linux-x64', 'tar.gz'), ('windows-x64', 'zip'), ('macos-arm64', 'zip'), ('macos-x64', 'zip')]}
+          expected = names | {name + '.sha256' for name in names} | {'ffmpeg-8.1.3.tar.xz'}
+          assert {p.name for p in root.iterdir()} == expected, 'Unexpected or missing release files'
+          for name in names:
+              checksum, filename = (root / (name + '.sha256')).read_text().split()
+              assert filename == name
+              with (root / name).open('rb') as archive:
+                  assert hashlib.file_digest(archive, 'sha256').hexdigest() == checksum
+          assets = [str(root / name) for name in sorted(expected)]
+          previous = subprocess.run(['gh', 'release', 'view', tag, '--json', 'isDraft,targetCommitish'], capture_output=True, text=True)
+          if previous.returncode == 0:
+              release = json.loads(previous.stdout)
+              assert release['isDraft'], 'Refusing to change an already published release'
+              assert release['targetCommitish'] == os.environ['BUILD_SHA'], 'Draft points to another build'
+              subprocess.run(['gh', 'release', 'upload', tag, *assets, '--clobber'], check=True)
+              subprocess.run(['gh', 'release', 'edit', tag, '--draft=false', '--latest', '--title', f'CueFlow {tag}', '--notes-file', 'docs/RELEASE.md'], check=True)
+          else:
+              subprocess.run(['gh', 'release', 'create', tag, *assets, '--target', os.environ['BUILD_SHA'], '--title', f'CueFlow {tag}', '--notes-file', 'docs/RELEASE.md'], check=True)
+          print(f'Published {tag} from verified build {os.environ["BUILD_SHA"]}')
+          PY
