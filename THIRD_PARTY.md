@@ -47,3 +47,11 @@ Las descargas incluyen los avisos de licencia y permiten reemplazar las bibliote
 dinámicas de Qt por versiones compatibles modificadas. El código fuente correspondiente
 de FFmpeg se adjunta a la publicación; su compilación está descrita en
 `scripts/build_ffmpeg.sh`. El repositorio no distribuye películas ni subtítulos de terceros.
+
+## Google Website Translator and Qt WebEngine
+
+Translation loads Google's public Website Translator widget only after user consent.
+It is an external service, not code licensed or redistributed under CueFlow's MIT license.
+Google retains its branding and policies: https://policies.google.com/privacy.
+The desktop build includes Qt WebEngine and Chromium through PySide6. Their license
+notices are included in the dependency bundle.

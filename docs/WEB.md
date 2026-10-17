@@ -18,7 +18,7 @@ etiquetas de formato; cambian los tiempos y la numeración secuencial.
 
 The interface is in English and Spanish. Synchronization uses speech timing, so audio
 and subtitle languages need not match. Track names come from container metadata, not
-language recognition. This tool does not translate or generate subtitles.
+language recognition. Synchronization does not translate or generate subtitles. The separate Translate & edit tool uses Google Translate after consent. See [TRANSLATION.md](TRANSLATION.md).
 
 La interfaz está en español e inglés. La sincronización compara tiempos de voz, por
 lo que el audio y el SRT pueden estar en idiomas distintos. Los nombres de las pistas
@@ -174,3 +174,14 @@ source revision and build instructions. Keep the license notices when redistribu
 - [libfvad-wasm source](https://github.com/OzymandiasTheGreat/libfvad-wasm) (BSD-3-Clause)
 - [fft.js](https://github.com/indutny/fft.js) (MIT)
 - [Website license notices](https://cueflow.enriquepl.com/licenses.html)
+
+## Google translation and local editing / Google y edición local
+
+Open `/#translate` for Google translation, a cue editor and six-format conversion.
+Translation uses Google’s Website Translator widget directly in the browser, after
+consent. It sends dialogue text to Google. It requires internet in the PWA too.
+Editing/conversion stays local, and there is no server translation API or API key.
+See [the complete flow and privacy details](TRANSLATION.md).
+
+Abre `/#translate` para traducir con Google, editar o convertir. Google recibe el texto
+solo al aceptar la traducción. Editar y convertir funciona sin conexión.

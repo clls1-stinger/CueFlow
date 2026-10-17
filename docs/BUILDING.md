@@ -37,6 +37,7 @@ bash scripts/build_ffmpeg.sh
 uv run python scripts/collect_licenses.py
 uv run pyinstaller --noconfirm --clean CueFlow.spec
 ./dist/CueFlow/CueFlow --self-test
+QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-gpu" ./dist/CueFlow/CueFlow --self-test-google
 uv run python scripts/package.py
 ```
 
@@ -47,7 +48,7 @@ On macOS, test the actual application bundle with
 `./dist/CueFlow.app/Contents/MacOS/CueFlow --self-test`.
 
 Linux builds use Ubuntu 22.04 as the baseline. Required system packages include
-`libgl1`, `libegl1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-cursor0`, `libfontconfig1`
+`libnss3`, `libnspr4`, `libasound2`, `libxcomposite1`, `libxdamage1`, `libxrandr2`, `libgbm1`, `libxtst6`, `libgl1`, `libegl1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-cursor0`, `libfontconfig1`
 and the ordinary libraries installed by a graphical desktop. These are runtime OS
 dependencies, not bundled Python modules. For headless tests, use the offscreen Qt platform.
 
@@ -65,8 +66,8 @@ docker rm cueflow-artifacts
 After all checks pass, push a version tag matching `pyproject.toml` and `scripts/package.py`:
 
 ```bash
-git tag v1.1.0
-git push origin main v1.1.0
+git tag v1.2.0
+git push origin main v1.2.0
 ```
 
 The release job waits for every matrix build, then publishes all archives, SHA-256
@@ -100,9 +101,13 @@ y abre cada binario en modo de comprobación antes de preparar los archivos desc
 Los comandos de compilación, el entorno MSYS2 de Windows y las bibliotecas necesarias
 en Linux están descritos arriba y en `.github/workflows/build.yml`.
 
-Para publicar, sube `main` y una etiqueta como `v1.1.0`. El trabajo de publicación espera
+Para publicar, sube `main` y una etiqueta como `v1.2.0`. El trabajo de publicación espera
 a que todas las plataformas pasen sus pruebas. Después adjunta los paquetes, sus sumas
 SHA-256 y el código fuente exacto de FFmpeg a GitHub Releases.
 
 El GIF se graba con `scripts/record_demo.py`: usa la aplicación real y archivos de prueba
 originales. No necesita ni incorpora películas o subtítulos aportados por usuarios.
+
+The translation window bundles Qt WebEngine (Chromium). The second smoke test checks
+that the packaged browser can execute JavaScript without internet. Its `--no-sandbox`
+flag is for controlled CI tests only; normal application launches keep Chromium defaults.

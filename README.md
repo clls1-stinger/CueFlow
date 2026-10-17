@@ -1,17 +1,17 @@
 <p align="center"><img src="docs/assets/cueflow.png" width="96" alt="CueFlow"></p>
 
-# CueFlow: Automatic Subtitle Sync / Sincronizador de subtítulos
+# CueFlow: Subtitle Sync, Google Translation & Editor / Sincroniza, traduce y edita subtítulos
 
 [![Latest release](https://img.shields.io/github/v/release/clls1-stinger/CueFlow)](https://github.com/clls1-stinger/CueFlow/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **CueFlow is a free, open-source subtitle synchronizer for the web, Windows, macOS and Linux.**
 Automatically sync an existing SRT with a video or audio file, fix subtitle delay and
-frame-rate drift, and choose the audio track you want. The desktop app uses ffsubsync and FFmpeg; the web app uses FFmpeg WebAssembly, WebRTC VAD and timing correlation. Processing stays on your device, without uploads, transcription or API keys.
+frame-rate drift, and choose the audio track you want. The desktop app uses ffsubsync and FFmpeg; the web app uses FFmpeg WebAssembly, WebRTC VAD and timing correlation. Synchronization stays on your device. The separate translator uses Google Translate with your consent; editing and conversion work offline. No API keys are needed.
 
 **CueFlow es un sincronizador de subtítulos gratuito y de código abierto para Windows,
 macOS, Linux y el navegador.** Ajusta un SRT adelantado, atrasado o con desfase progresivo usando las
-voces del video. Permite elegir la pista de audio y funciona sin conexión ni claves de API.
+voces del video. También traduce con Google Translate y permite editar o convertir subtítulos. La sincronización, edición y conversión funcionan sin conexión; traducir requiere internet y tu consentimiento.
 
 [Open web app / Abrir versión web](https://cueflow.enriquepl.com/) ·
 [Download / Descargar](https://github.com/clls1-stinger/CueFlow/releases/latest) ·
@@ -33,7 +33,7 @@ Sin instalar nada ni crear una cuenta. Puedes elegir la pista de audio y la codi
 del texto. La web enlaza a este repositorio y a las descargas de escritorio.
 
 The browser downloads a local engine (about 32 MB) on first use. Files are processed
-locally and are never uploaded. The web edition accepts files up to 2 GiB and 4 hours;
+locally during synchronization. Translation sends subtitle text directly to Google after consent. The web edition accepts files up to 2 GiB and 4 hours;
 available memory and browser support can impose lower limits. Use desktop for larger files.
 El navegador descarga el motor en el primer uso y procesa los archivos localmente.
 Para películas grandes o dispositivos con poca memoria, usa la versión de escritorio.
@@ -53,6 +53,41 @@ iconos y recomendaciones de equipo.
 Hosted on **Cloudflare Pages with a Workers-powered Pages Function** at `/api/health`.
 See [web setup, deployment and limitations](docs/WEB.md).
 
+## Translate, edit and convert / Traducir, editar y convertir
+
+**[Open Google subtitle translation / Abrir traductor de subtítulos](https://cueflow.enriquepl.com/#translate)**
+
+1. Open **Translate & edit** on the website or desktop app.
+2. Choose up to 20 subtitle files, with a combined size of 1 MB.
+3. Choose the source language (or automatic detection) and the target language.
+4. Accept sending the subtitle text to Google and click **Translate with Google**.
+5. Review the original and translated text, edit timestamps if needed, and download a file or ZIP.
+
+En **Traducir y editar**, elige hasta 20 archivos (1 MB en total), indica los idiomas y
+acepta enviar el texto a Google. Revisa los diálogos y descarga un archivo o un ZIP.
+Puedes editar y convertir sin traducir y sin internet. Cancelar conserva los bloques
+terminados durante la sesión; continuar evita traducirlos otra vez.
+
+- **Formats / Formatos:** SRT, VTT, ASS, SBV, SubViewer SUB and text Spruce STL.
+  Binary EBU STL and frame-based MicroDVD SUB are not supported.
+- **Timing / Tiempos:** translation changes dialogue only. Original timestamps remain
+  in the local document. Same-format ASS/VTT export preserves styles and cue settings;
+  conversion to another format simplifies formatting. ASS/SUB use hundredths and STL uses frames.
+- **Languages / Idiomas:** 249 choices captured from Google's widget on 2026-10-17 UTC.
+  Availability is checked at runtime. This is not a guarantee of every language or equal quality.
+- **Privacy / Privacidad:** the Google widget loads only after consent. Google receives
+  the dialogue and ordinary web request metadata. No movie, audio, filename or timestamps
+  are sent for translation. Google is an external service with its own policies.
+- **Offline / Sin conexión:** synchronization, editing and conversion work locally.
+  Translation needs internet, including in the Android PWA and desktop app.
+
+The public workflow of [Subtitles Translator](https://subtitlestranslator.com/en/) was
+examined to implement this feature independently. CueFlow uses the same public Google
+Website Translator widget technique; it does not upload files to that website or use
+an LLM gateway. See [implementation, privacy and limits / implementación y límites](docs/TRANSLATION.md).
+
+![CueFlow translating a synthetic subtitle with the actual Google widget](docs/assets/translation-demo.gif)
+
 ## English
 
 ### Automatically sync SRT subtitles with video or audio
@@ -71,8 +106,8 @@ Audio and subtitle languages are independent of the English/Spanish interface.
 CueFlow uses speech timing rather than the meaning of words, so the video and subtitles
 can be in different languages: for example, Japanese audio with Spanish subtitles,
 English audio with Arabic subtitles, or French audio with Chinese subtitles.
-There is no language allowlist and no language-specific transcription model. It does not translate, generate subtitles, edit the video or
-guarantee word-perfect alignment. Review a scene near the start, middle and end.
+There is no language allowlist and no language-specific transcription model. Synchronization does not translate or generate dialogue, edit the video or
+guarantee word-perfect alignment. Use the separate **Translate & edit** tool for Google translation. Review a scene near the start, middle and end.
 
 ### Download and run
 
@@ -81,10 +116,10 @@ Release automation publishes the downloads only after all four builds and their 
 
 | Platform | File | How to open |
 | --- | --- | --- |
-| Windows 10/11, x64 | `CueFlow-1.1.0-windows-x64.zip` | Extract the whole ZIP; run `CueFlow.exe`. |
-| macOS 12+, Apple Silicon | `CueFlow-1.1.0-macos-arm64.zip` | Extract and open `CueFlow.app`. |
-| macOS 12+, Intel | `CueFlow-1.1.0-macos-x64.zip` | Extract and open `CueFlow.app`. |
-| Linux x64, Ubuntu 22.04+ or compatible | `CueFlow-1.1.0-linux-x64.tar.gz` | Extract; run `./CueFlow/CueFlow`. |
+| Windows 10/11, x64 | `CueFlow-1.2.0-windows-x64.zip` | Extract the whole ZIP; run `CueFlow.exe`. |
+| macOS 12+, Apple Silicon | `CueFlow-1.2.0-macos-arm64.zip` | Extract and open `CueFlow.app`. |
+| macOS 12+, Intel | `CueFlow-1.2.0-macos-x64.zip` | Extract and open `CueFlow.app`. |
+| Linux x64, Ubuntu 22.04+ or compatible | `CueFlow-1.2.0-linux-x64.tar.gz` | Extract; run `./CueFlow/CueFlow`. |
 
 The downloads include Python, the application libraries, FFmpeg and ffprobe. Keep the
 extracted folder together. Linux still needs a graphical desktop and standard OpenGL,
@@ -144,8 +179,8 @@ Los idiomas del audio y del SRT son independientes del español e inglés de la 
 Compara los tiempos de las voces, no el significado de las palabras: puedes sincronizar
 audio japonés con subtítulos en español, audio inglés con texto árabe o audio francés
 con texto chino. No hay una lista de idiomas permitidos ni un modelo de transcripción
-por idioma. No traduce, genera subtítulos ni modifica
-el video. Tampoco garantiza precisión palabra por palabra: revisa una escena al inicio,
+por idioma. La sincronización no traduce ni genera diálogos y no modifica
+el video. La herramienta separada **Traducir y editar** permite traducir con Google. Tampoco garantiza precisión palabra por palabra: revisa una escena al inicio,
 a la mitad y al final.
 
 ### Descargar y abrir
@@ -156,10 +191,10 @@ y sus pruebas terminen correctamente.
 
 | Sistema | Archivo | Cómo abrirlo |
 | --- | --- | --- |
-| Windows 10/11, x64 | `CueFlow-1.1.0-windows-x64.zip` | Extrae todo el ZIP y ejecuta `CueFlow.exe`. |
-| macOS 12+, Apple Silicon | `CueFlow-1.1.0-macos-arm64.zip` | Extrae y abre `CueFlow.app`. |
-| macOS 12+, Intel | `CueFlow-1.1.0-macos-x64.zip` | Extrae y abre `CueFlow.app`. |
-| Linux x64, Ubuntu 22.04+ o compatible | `CueFlow-1.1.0-linux-x64.tar.gz` | Extrae y ejecuta `./CueFlow/CueFlow`. |
+| Windows 10/11, x64 | `CueFlow-1.2.0-windows-x64.zip` | Extrae todo el ZIP y ejecuta `CueFlow.exe`. |
+| macOS 12+, Apple Silicon | `CueFlow-1.2.0-macos-arm64.zip` | Extrae y abre `CueFlow.app`. |
+| macOS 12+, Intel | `CueFlow-1.2.0-macos-x64.zip` | Extrae y abre `CueFlow.app`. |
+| Linux x64, Ubuntu 22.04+ o compatible | `CueFlow-1.2.0-linux-x64.tar.gz` | Extrae y ejecuta `./CueFlow/CueFlow`. |
 
 Las descargas incluyen Python, las bibliotecas, FFmpeg y ffprobe. Conserva completa la
 carpeta extraída. Linux requiere un escritorio gráfico y sus bibliotecas habituales;
@@ -209,8 +244,7 @@ track must still correspond to the same scenes and edition as the subtitle file.
 
 ### Does CueFlow translate subtitles or generate a dub?
 
-No. It changes SRT timestamps and can repair text encoding. It preserves dialogue and
-does not modify the audio or video. English and Spanish are the interface languages.
+Yes: **Translate & edit** translates existing subtitle text with Google Translate. It does not generate a dub, transcribe speech or modify audio/video. Synchronization still preserves the original dialogue. English and Spanish are the interface languages.
 
 ### How do I fix subtitles that get further out of sync?
 
@@ -232,8 +266,7 @@ archivos de audio compatibles, como WAV, MP3, FLAC y MKA.
 
 ### ¿Sube mis archivos a internet o cobra por minuto?
 
-No. La sincronización funciona en tu equipo. No requiere cuentas, claves de API ni
-servicios de transcripción. El tiempo de procesamiento depende del archivo y del hardware.
+La sincronización, edición y conversión funcionan en tu equipo. La traducción es opcional: envía solo el texto a Google después de que lo aceptes. No requiere claves de API ni servicios de transcripción. Google puede limitar o interrumpir su widget.
 
 ## Development / Desarrollo
 

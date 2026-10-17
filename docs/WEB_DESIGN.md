@@ -49,3 +49,14 @@ icon; no additional CTA accent. Four desktop links name the OS and architecture.
 Android uses a separate installable-web-app row with explicit installation and
 offline preparation actions. Put hardware suggestions in an expandable section,
 keeping the main synchronization task first.
+
+## Translation extension
+
+Keep the existing CueFlow reference lock. A two-tab switch separates synchronization
+from Translate & edit; use the same dark surfaces, type and CTA-only orange.
+The user-requested Subtitles Translator workflow supplies batch selection, language
+choice, editable start/end/text, and download. Refero's [Arcade translation screen](https://refero.design/pages/ac7e1620-b2bc-483f-9222-b452532ecb42)
+supplies the original/output comparison pattern, adapted to stacked fields on mobile.
+Google's actual widget appears only during opted-in translation, with its attribution.
+Eight cues per page keep the browser editor manageable; downloads and format choice
+follow the review area. Import encoding and STL frame rate remain collapsed.

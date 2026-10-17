@@ -8,13 +8,13 @@ binaries = [(str(root / 'vendor' / 'ffmpeg' / (name + suffix)), 'vendor/ffmpeg')
 datas = [(str(root / 'build/licenses'), 'licenses'),
          (str(root / 'docs/assets/cueflow.png'), 'docs/assets'),
          (str(root / 'LICENSE'), '.'),
+         (str(root / 'cueflow/google_languages.json'), 'cueflow'),
          (str(root / 'THIRD_PARTY.md'), '.'),
          (str(root / 'vendor/ffmpeg/COPYING.LGPLv2.1'), 'vendor/ffmpeg')]
 a = Analysis(['launcher.py'], pathex=[str(root)], binaries=binaries, datas=datas,
              hookspath=[str(root / 'scripts/hooks')],
              hiddenimports=['_webrtcvad', 'charset_normalizer.md'],
-             excludes=['tkinter', 'PySide6.QtWebEngineCore', 'PySide6.QtWebEngineWidgets',
-                       'PySide6.QtQml', 'PySide6.QtQuick', 'pytest', 'PIL'], noarchive=False)
+             excludes=['tkinter', 'pytest', 'PIL'], noarchive=False)
 pyz = PYZ(a.pure)
 # Console bootloader preserves worker stdio on Windows. Hide the parent console at launch.
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='CueFlow', debug=False,
@@ -26,5 +26,5 @@ if sys.platform == 'darwin':
     app = BUNDLE(coll, name='CueFlow.app', icon=str(root / 'docs/assets/cueflow.icns'),
                  bundle_identifier='com.cueflow.desktop',
                  info_plist={'NSHighResolutionCapable': True,
-                             'CFBundleShortVersionString': '1.1.0',
+                             'CFBundleShortVersionString': '1.2.0',
                              'LSMinimumSystemVersion': '12.0'})

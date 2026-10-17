@@ -8,7 +8,7 @@ from pathlib import Path
 
 system = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
 arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
-name = f"CueFlow-1.1.0-{system}-{arch}"
+name = f"CueFlow-1.2.0-{system}-{arch}"
 base = Path("dist")
 if system == "macos":
     import subprocess

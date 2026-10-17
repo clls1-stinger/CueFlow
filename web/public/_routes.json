@@ -1,1 +1,9 @@
-{"version":1,"include":["/api/*","/download"],"exclude":[]}
+{
+  "version": 1,
+  "include": [
+    "/api/*",
+    "/download",
+    "/google-translate.html"
+  ],
+  "exclude": []
+}

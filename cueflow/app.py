@@ -159,6 +159,9 @@ class Window(QMainWindow):
         layout.addWidget(self.title)
         self.intro = label(role="muted")
         layout.addWidget(self.intro)
+        self.editor_button = QPushButton()
+        self.editor_button.clicked.connect(self.open_editor)
+        layout.addWidget(self.editor_button, alignment=Qt.AlignLeft)
         layout.addWidget(Timeline())
         self.fields = {}
         for key in ("video", "subtitle", "output"):
@@ -268,12 +271,19 @@ class Window(QMainWindow):
     def t(self, key):
         return TEXT[self.lang].get(key, TEXT[self.lang]["unexpected"])
 
+    def open_editor(self):
+        from cueflow.editor import SubtitleEditor
+
+        dialog = SubtitleEditor(self.lang, self)
+        dialog.exec()
+
     def change_language(self):
         self.lang = self.language.currentData()
         self.settings.setValue("language", self.lang)
         self.retranslate()
 
     def retranslate(self):
+        self.editor_button.setText("Traducir y editar subtítulos" if self.lang == "es" else "Translate & edit subtitles")
         for widget, key in [
             (self.title, "tagline"),
             (self.intro, "intro"),
@@ -597,6 +607,7 @@ class Window(QMainWindow):
 
 
 def launch():
+    QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app.setApplicationName("CueFlow")
     app.setApplicationVersion(__version__)

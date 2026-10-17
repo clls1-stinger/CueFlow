@@ -1,44 +1,35 @@
 ## English
 
-CueFlow 1.1.0 makes multilingual subtitle synchronization easier to use:
+CueFlow 1.2.0 adds Google subtitle translation, a local editor and six-format conversion.
 
-- Choose any embedded audio track, including a different dubbed language. Track titles
-  and language tags come from the media file; CueFlow does not guess the spoken language.
-- Sync audio and SRT files in different languages using local speech timing. No
-  translation, transcription, uploads or API keys are required.
-- Read UTF-32 automatically and choose additional legacy encodings for Japanese,
-  Chinese, Korean, Cyrillic, Arabic, Hebrew, Thai, Greek, Turkish and Vietnamese text.
-- Preserve multilingual dialogue, formatting and input files. Results remain UTF-8 SRT.
-- Read the expanded English/Spanish README, subtitle-sync FAQ and command-line examples.
+- Translate with Google's public Website Translator widget, without API keys or an LLM gateway.
+- Choose from 249 language options captured from Google; availability is checked during translation.
+- Load up to 20 files / 1 MB: SRT, VTT, ASS, SBV, SubViewer SUB and text Spruce STL.
+- Keep timestamps and formatting markers, review original and translated dialogue, edit times/text, and export one file or a ZIP.
+- Cancel and resume batches without losing completed work in the current session.
+- Synchronization, editing and conversion work offline. Translation requires internet and consent to send text to Google.
 
-Choose the archive for your operating system and processor. Extract the whole archive
-before opening the app. FFmpeg, ffprobe and Python are included. These builds are
-unsigned; macOS builds are not notarized. See the README for opening instructions.
+Choose your OS and processor, extract the entire archive, and open CueFlow. The app
+includes Python, FFmpeg, ffprobe and Qt WebEngine. Builds are unsigned; macOS builds
+are not notarized. The browser runtime makes downloads larger than 1.1.0. See the
+README and BUILDING guide for system libraries and installation help.
 
-Each download passes source tests and a frozen-app test that selects the second audio
-track, aligns synthetic speech-like audio and preserves multilingual subtitle text.
-These tests verify functionality; they do not measure accuracy across all spoken languages.
-Check the adjacent `.sha256` file to verify your download. The FFmpeg source archive is
-provided for license compliance; it is not the desktop app.
+The release pipeline tests native synchronization and the packaged browser runtime.
+The Google widget is an external service and can change or become unavailable. No
+accuracy guarantee across all languages is made. Check the adjacent SHA-256 file.
 
 ## Español
 
-CueFlow 1.1.0 facilita la sincronización de subtítulos en distintos idiomas:
+CueFlow 1.2.0 añade traducción con Google, editor local y conversión de seis formatos.
 
-- Elige cualquier pista de audio, incluido otro doblaje. Los títulos e idiomas se leen
-  de las etiquetas del archivo; CueFlow no adivina el idioma hablado.
-- Sincroniza audio y SRT en idiomas diferentes mediante los tiempos de las voces.
-  No requiere traducción, transcripción, subir archivos ni claves de API.
-- Detecta UTF-32 y permite elegir más codificaciones para texto japonés, chino, coreano,
-  cirílico, árabe, hebreo, tailandés, griego, turco y vietnamita.
-- Conserva los diálogos, su formato y los archivos originales. El resultado es un SRT UTF-8.
-- Incluye un README ampliado en español e inglés, preguntas frecuentes y ejemplos de consola.
+- Traduce con el widget público de Google Translate, sin claves de API ni Makima.
+- Elige entre 249 opciones de idioma observadas en Google; se comprueba su disponibilidad al traducir.
+- Abre hasta 20 archivos / 1 MB: SRT, VTT, ASS, SBV, SubViewer SUB y Spruce STL de texto.
+- Conserva los tiempos y etiquetas, compara el original con la traducción, edita los diálogos y descarga un archivo o ZIP.
+- Cancela y continúa sin perder los bloques terminados durante la sesión.
+- Sincronizar, editar y convertir funciona sin conexión. Traducir requiere internet y aceptar enviar el texto a Google.
 
-Elige el paquete de tu sistema y procesador. Extrae todo el contenido antes de abrir la
-aplicación. Incluye FFmpeg, ffprobe y Python. Las compilaciones no tienen firma de editor
-y las de macOS no están notarizadas. Consulta las instrucciones del README.
-
-Cada descarga supera pruebas del código y del ejecutable: selección de la segunda pista,
-ajuste de audio sintético y conservación de texto multilingüe. Estas pruebas verifican el
-funcionamiento; no miden la precisión con todos los idiomas hablados. El archivo `.sha256`
-permite comprobar la descarga. El código fuente de FFmpeg se incluye por su licencia.
+Extrae el paquete completo correspondiente a tu sistema. Incluye Python, FFmpeg,
+ffprobe y Qt WebEngine. Las compilaciones no tienen firma de editor y macOS no está
+notarizado. El navegador integrado aumenta el tamaño respecto a 1.1.0. Google puede
+cambiar o interrumpir su widget; revisa las traducciones antes de usarlas.

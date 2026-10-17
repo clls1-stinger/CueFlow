@@ -1,4 +1,5 @@
 import './style.css';
+import { setupTranslator } from './translator.js';
 import { setupPwa } from './pwa.js';
 import { messages } from './i18n.js';
 import { decodeSrt, parseSrt, applyTiming } from './subtitles.js';
@@ -9,9 +10,20 @@ try { lang = localStorage.getItem('cueflow-language') || (navigator.language.sta
 if (!messages[lang]) lang = 'es';
 let video, subtitle, session, analyzer, outputURL, generation = 0, busy = false, syncing = false, phase = '', fraction = 0, started = 0, errorKey = '', watchdog, rejectAnalysis;
 const t = key => messages[lang][key];
+const translator = setupTranslator(() => lang);
+function changeMode(mode) {
+  for (const key of ['sync','translate']) { const tab=$('mode-'+key);tab.setAttribute('aria-selected',String(key===mode));tab.tabIndex=key===mode?0:-1; }
+  $('sync-workspace').hidden=mode!=='sync';$('translate-panel').hidden=mode!=='translate';
+  history.replaceState(null,'',mode==='translate'?'#translate':location.pathname);
+}
+for(const key of ['sync','translate']) { $('mode-'+key).onclick=()=>changeMode(key);$('mode-'+key).onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=key==='sync'?'translate':'sync';changeMode(next);$('mode-'+next).focus();}};}
+if(location.hash==='#translate')changeMode('translate');
 function translate() {
   document.documentElement.lang = lang;
-  document.title = lang === 'es' ? 'CueFlow — Sincroniza subtítulos online, sin subir tu video' : 'CueFlow — Sync subtitles online, without uploading your video';
+  document.title = lang === 'es' ? 'CueFlow — Sincroniza, traduce y edita subtítulos' : 'CueFlow — Subtitle sync, Google translation & editor';
+  translator?.retranslate();
+  $('mode-sync').textContent = lang === 'es' ? 'Sincronizar' : 'Synchronize';
+  $('mode-translate').textContent = lang === 'es' ? 'Traducir y editar' : 'Translate & edit';
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   $('language').textContent = lang === 'es' ? 'EN' : 'ES';
   $('language').setAttribute('aria-label', lang === 'es' ? 'Switch to English' : 'Cambiar a español');

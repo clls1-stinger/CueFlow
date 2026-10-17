@@ -22,6 +22,11 @@ def main():
         from cueflow.engine import cli
 
         return cli(sys.argv[2:])
+    if "--self-test-google" in sys.argv:
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from cueflow.google_smoke import run
+
+        return run()
     if "--self-test" in sys.argv:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from cueflow.smoke import self_test
