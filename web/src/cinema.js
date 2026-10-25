@@ -4,7 +4,7 @@ import { GOOGLE_LANGUAGES, parseDocument, serializeDocument, batches, plain } fr
 const API = '/api/cinema';
 const words = {
   es: {
-    title:'Películas',search:'Buscar en StreamIMDB',query:'Nombre de la película',find:'Buscar',empty:'No se encontraron películas.',
+    popular:'Populares de hoy',popularSource:'En StreamIMDB',browse:'Ver populares',title:'Películas',search:'Buscar en StreamIMDB',query:'Nombre de la película',find:'Buscar',empty:'No se encontraron películas.',
     found:'Resultados',choose:'Versión de subtítulos',language:'Idioma de salida',quality:'Calidad',small:'Hasta 480p · descarga más ligera',large:'Hasta 720p',
     prepare:'Ver película y sincronizar',loading:'Buscando…',loadingMovie:'Consultando video y subtítulos…',
     note:'La película se prepara temporalmente en Oracle. Los archivos se borran tras una hora sin actividad y, como máximo, a las seis horas de crearlos.',
@@ -18,7 +18,7 @@ const words = {
     errors:{query_invalid:'Escribe al menos dos caracteres.',queue_full:'Oracle está ocupado. Inténtalo de nuevo en unos minutos.',storage_full:'El espacio temporal está ocupado. Borra una sesión o vuelve más tarde.',rate_limit:'Se alcanzó el límite temporal. Espera unos minutos.',movie_too_large:'Esta calidad supera el límite de 2 GB. Prueba hasta 480p.',source_unavailable:'La fuente no respondió. Vuelve a intentarlo.',movie_unavailable:'La fuente no ofrece un video disponible para esta película.',subtitle_missing:'Elige una versión de subtítulos.',alignment_failed:'No se pudo verificar la sincronización con esta versión. Prueba otra.',processing_failed:'No se pudo completar la película con esta versión. Prueba otra.',interrupted:'La preparación se interrumpió. Vuelve a iniciarla.',job_expired:'Esta sesión caducó. Vuelve a preparar la película.',googleTimeout:'Google tardó demasiado. Puedes reintentar la traducción.',googleUnavailable:'Google Translate no respondió. El video y los subtítulos originales siguen disponibles.',translation_timing_changed:'La traducción cambió los tiempos y no se guardó.',network:'No se pudo completar la operación. Comprueba la conexión o vuelve a intentarlo.'},
   },
   en: {
-    title:'Movies',search:'Search StreamIMDB',query:'Movie title',find:'Search',empty:'No movies found.',found:'Results',choose:'Subtitle release',language:'Output language',quality:'Quality',small:'Up to 480p · smaller download',large:'Up to 720p',prepare:'Watch movie and sync subtitles',loading:'Searching…',loadingMovie:'Checking video and subtitles…',
+    popular:'Popular today',popularSource:'On StreamIMDB',browse:'Browse popular movies',title:'Movies',search:'Search StreamIMDB',query:'Movie title',find:'Search',empty:'No movies found.',found:'Results',choose:'Subtitle release',language:'Output language',quality:'Quality',small:'Up to 480p · smaller download',large:'Up to 720p',prepare:'Watch movie and sync subtitles',loading:'Searching…',loadingMovie:'Checking video and subtitles…',
     note:'The movie is prepared temporarily on Oracle. Files are deleted after one hour of inactivity, and at most six hours after creation.',consent:'I agree to send the subtitle text to Google for translation into the selected language. I will keep this tab visible during translation.',fallback:'There is no release in this language. You can translate an available release while the video is being prepared.',noSubs:'No subtitles were found for this movie. Try checking again later.',downloading:'Downloading movie',remuxing:'Preparing video',synchronizing:'Synchronizing with audio',packaging:'Adding subtitles to MP4',translating:'Adding translation to MP4',ready:'Ready to watch',download:'Download MP4 with subtitles',srt:'Download synchronized SRT',translate:'Translate subtitles',translation:'Translating dialogue',translationDone:'Translation complete. Preparing MP4.',cancel:'Cancel and delete files',erase:'Delete this session',expiry:'If unused, files will be deleted at',max:'This link is temporary. Prepare the movie again after it expires.',edit:'Need another language?',busy:'You can watch while the complete file is prepared. Synchronization is verified in the background.',pendingSync:'Original subtitles · synchronization pending',preliminarySync:'Preliminary adjustment · checking the full audio',verifiedSync:'Synchronization verified',streaming:'Playback is available',translationWaiting:'Translation ready to watch. MP4 export follows full synchronization.',expired:'This session expired. Prepare the movie again.',
     errors:{query_invalid:'Enter at least two characters.',queue_full:'Oracle is busy. Try again in a few minutes.',storage_full:'Temporary storage is full. Delete a session or try later.',rate_limit:'Temporary request limit reached. Wait a few minutes.',movie_too_large:'This quality exceeds 2 GB. Try up to 480p.',source_unavailable:'The source did not respond. Try again.',movie_unavailable:'No available video was found for this movie.',subtitle_missing:'Choose a subtitle release.',alignment_failed:'Synchronization could not be verified for this release. Try another.',processing_failed:'This release could not be processed. Try another.',interrupted:'Preparation was interrupted. Start it again.',job_expired:'This session expired. Prepare the movie again.',googleTimeout:'Google took too long. Retry the translation.',googleUnavailable:'Google Translate did not respond. Video and original subtitles remain available.',translation_timing_changed:'The translation changed timing and was not saved.',network:'The operation could not be completed. Check your connection or retry.'},
   },
@@ -29,11 +29,14 @@ export function setupCinema(getLanguage, activate) {
   const $ = id => document.getElementById('cinema-' + id);
   const t = key => words[getLanguage()][key];
   let movie, job, poll, request, selectedRun = 0, translation, translating = false, autoTranslate = false, wantedLanguage, hls, sourceToken, captionsURL, captionRun=0, draft, timingCache, submitting=false;
+  let browsing=true, popularLoading=false, popularUntil=0;
   panel.innerHTML = `
     <form id="cinema-search"><label for="cinema-query" data-cinema="search"></label><div class="cinema-search-row"><input id="cinema-query" type="search" required minlength="2" maxlength="120" autocomplete="off"><button class="secondary" type="submit" data-cinema="find"></button></div></form>
     <p id="cinema-message" role="status" aria-live="polite"></p><p id="cinema-error" role="alert" hidden></p>
+    <button id="cinema-browse" class="text-button" type="button" data-cinema="browse" hidden></button>
+    <section id="cinema-popular" aria-labelledby="cinema-popular-title" hidden><div class="cinema-popular-heading"><h2 id="cinema-popular-title" data-cinema="popular"></h2><span data-cinema="popularSource"></span></div><div id="cinema-posters" class="cinema-posters"></div></section>
     <div id="cinema-results" class="cinema-results"></div>
-    <section id="cinema-detail" hidden><h2 id="cinema-title"></h2><p class="help" data-cinema="note"></p>
+    <section id="cinema-detail" hidden><h2 id="cinema-title" tabindex="-1"></h2><p class="help" data-cinema="note"></p>
       <div class="cinema-options"><label><span data-cinema="language"></span><select id="cinema-language"></select></label><label><span data-cinema="quality"></span><select id="cinema-quality"><option value="480" data-cinema="small"></option><option value="720" data-cinema="large"></option></select></label></div>
       <label><span data-cinema="choose"></span><select id="cinema-subtitle"></select></label><p id="cinema-fallback" class="help" data-cinema="fallback" hidden></p>
       <label id="cinema-consent-label" class="checkbox" hidden><input id="cinema-consent" type="checkbox"><span data-cinema="consent"></span></label>
@@ -59,6 +62,37 @@ export function setupCinema(getLanguage, activate) {
   function clearError() { $('error').hidden = true; }
   function languageName(code) { try { return new Intl.DisplayNames([getLanguage()],{type:'language'}).of(code==='pb'?'pt-BR':code); } catch { return code; } }
   function file(name, download=false) { return `${API}/jobs/${encodeURIComponent(job.token)}/files/${name}${download?'?download=true':''}`; }
+  function browseView(show) {
+    browsing=show;$('popular').hidden=!show||!$('posters').children.length;
+    $('browse').hidden=show||!!job;
+  }
+  async function showPopular() {
+    if(!browsing||popularLoading)return;
+    browseView(true);
+    if(Date.now()<popularUntil)return;
+    popularLoading=true;
+    try{
+      const data=await api('/popular');
+      const cards=[];
+      for(const item of (Array.isArray(data.results)?data.results:[]).slice(0,4)){
+        if(!/^[a-z0-9][a-z0-9-]{1,120}$/.test(item.slug)||typeof item.title!=='string'||!/^https:\/\/image\.tmdb\.org\/t\/p\/w342\/[A-Za-z0-9]+\.(jpg|png|webp)$/.test(item.poster))continue;
+        const link=document.createElement('a');link.className='cinema-poster';link.href='#movie/'+item.slug;
+        const cover=document.createElement('span');cover.className='cinema-poster-image';
+        const img=document.createElement('img');img.src=item.poster;img.alt='';img.width=228;img.height=342;
+        img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();
+        const title=document.createElement('span');title.className='cinema-poster-title';title.textContent=item.title;
+        cover.append(img);link.append(cover,title);cards.push(link);
+      }
+      $('posters').replaceChildren(...cards);popularUntil=Date.now()+900000;
+      browseView(browsing);
+    }catch{/* Discovery is optional; search remains available. */}
+    finally{popularLoading=false;}
+  }
+  $('browse').onclick=()=>{
+    request?.abort();selectedRun++;movie=null;$('detail').hidden=true;$('results').replaceChildren();
+    $('query').value='';$('message').textContent='';clearError();browseView(true);
+    history.replaceState(null,'','#movies');showPopular();$('query').focus();
+  };
   function languageMenus() {
     const options = GOOGLE_LANGUAGES.map(({code})=>[code,languageName(code)]).sort((a,b)=>a[1].localeCompare(b[1]));
     for (const key of ['language','target']) {
@@ -81,7 +115,7 @@ export function setupCinema(getLanguage, activate) {
   }
   async function selectMovie(slug, navigate=true) {
     request?.abort();request=new AbortController();const run=++selectedRun;
-    clearError();$('message').textContent=t('loadingMovie');$('detail').hidden=true;
+    browseView(false);clearError();$('message').textContent=t('loadingMovie');$('detail').hidden=true;
     try {
       const data=await api('/movies/'+encodeURIComponent(slug),{signal:request.signal});
       if(run!==selectedRun)return;
@@ -89,11 +123,12 @@ export function setupCinema(getLanguage, activate) {
       $('subtitle').replaceChildren(...data.subtitles.map(s=>new Option(`${languageName(s.language)} · ${s.name}`,s.id)));
       $('message').textContent=data.subtitles.length?'':t('noSubs');updateSelection(true);
       if(navigate)history.replaceState(null,'',`#movie/${slug}`);
+      $('title').focus({preventScroll:true});
     } catch(e) {if(run===selectedRun&&e.name!=='AbortError'){error(e);$('message').textContent='';}}
   }
   $('search').onsubmit=async e=>{
     e.preventDefault();request?.abort();request=new AbortController();const run=++selectedRun;
-    clearError();$('message').textContent=t('loading');$('results').replaceChildren();
+    browseView(false);clearError();$('message').textContent=t('loading');$('results').replaceChildren();
     try {
       const data=await api('/search?q='+encodeURIComponent($('query').value.trim()),{signal:request.signal});
       if(run!==selectedRun)return;
@@ -191,7 +226,7 @@ export function setupCinema(getLanguage, activate) {
     updateSelection();
   }
   async function watch(token, slug) {
-    clearTimeout(poll);translation?.abort();draft=null;resetVideo();
+    browseView(false);$('browse').hidden=true;clearTimeout(poll);translation?.abort();draft=null;resetVideo();
     try {job=await api('/jobs/'+encodeURIComponent(token));remember();renderJob();}
     catch(e){job=null;if(slug)await selectMovie(slug);error(e);return;}
     history.replaceState(null,'',`#watch/${token}/${slug||job.slug}`);
@@ -276,7 +311,7 @@ export function setupCinema(getLanguage, activate) {
     try {await api('/jobs/'+encodeURIComponent(token),{method:'DELETE'});}catch(e){if(e.message!=='job_expired'){error(e);return;}}
     clearTimeout(poll);job=null;draft=null;resetVideo();$('session').hidden=true;$('translation-status').textContent='';
     try{localStorage.removeItem('cueflow-movie-session');}catch{/* Optional. */}
-    history.replaceState(null,'',movie?`#movie/${movie.slug}`:'#movies');updateSelection();
+    history.replaceState(null,'',movie?`#movie/${movie.slug}`:'#movies');browseView(!movie);if(!movie)showPopular();updateSelection();
   };
   // Heartbeat only while this workspace is visible or its video is playing.
   setInterval(async()=>{
@@ -287,9 +322,9 @@ export function setupCinema(getLanguage, activate) {
     const parts=location.hash.slice(1).split('/');
     if(parts[0]==='movie'&&/^[a-z0-9-]{2,121}$/.test(parts[1]||'')){activate('movies',false);selectMovie(parts[1],false);}
     else if(parts[0]==='watch'&&/^[A-Za-z0-9_-]{43}$/.test(parts[1]||'')){activate('movies',false);watch(parts[1],parts[2]);}
-    else if(parts[0]==='movies'){activate('movies',false);}
+    else if(parts[0]==='movies'){activate('movies',false);if(!job){request?.abort();selectedRun++;movie=null;$('detail').hidden=true;$('results').replaceChildren();$('message').textContent='';clearError();browseView(true);showPopular();}}
   }
   const retranslate=()=>{panel.querySelectorAll('[data-cinema]').forEach(el=>{el.textContent=t(el.dataset.cinema);});$('query').setAttribute('aria-label',t('query'));languageMenus();updateSelection();renderJob();};
   retranslate();route();window.addEventListener('hashchange',route);
-  return {retranslate,routeHash:()=>job?`#watch/${job.token}/${job.slug}`:movie?`#movie/${movie.slug}`:'#movies'};
+  return {retranslate,show:showPopular,routeHash:()=>job?`#watch/${job.token}/${job.slug}`:movie?`#movie/${movie.slug}`:'#movies'};
 }

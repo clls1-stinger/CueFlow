@@ -97,6 +97,27 @@ class Provider:
                            "meta": meta.get_text(" ", strip=True)[:100] if meta else ""}
         return list(found.values())[:40]
 
+    async def popular(self) -> list[dict]:
+        """Keep the order of the site's daily top movies, with bounded poster URLs."""
+        soup = BeautifulSoup(await self.fetch("https://streamimdb.ru/"), "html.parser")
+        found = {}
+        for card in soup.select("#cbTop10 a.cb-top10-item[href^='/movie/']"):
+            slug = card.get("href", "").removeprefix("/movie/")
+            poster = card.select_one("img")
+            if not SLUG.fullmatch(slug) or slug in found or not poster:
+                continue
+            title = poster.get("alt", "").strip()[:200]
+            # Only static TMDB poster paths; never relay an arbitrary image URL.
+            match = re.fullmatch(r"https://image\.tmdb\.org/t/p/(?:w\d+|original)/([A-Za-z0-9]+\.(?:jpg|png|webp))",
+                                 poster.get("src", ""))
+            if not title or not match:
+                continue
+            found[slug] = {"slug": slug, "title": title,
+                           "poster": "https://image.tmdb.org/t/p/w342/" + match[1]}
+            if len(found) == 4:
+                break
+        return list(found.values())
+
     async def movie(self, slug: str) -> dict:
         if not SLUG.fullmatch(slug):
             raise ProviderError("movie_invalid")

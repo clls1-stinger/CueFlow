@@ -18,6 +18,7 @@ function changeMode(mode, navigate=true) {
   $('sync-workspace').hidden=mode!=='sync';$('translate-panel').hidden=mode!=='translate';
   $('cinema-panel').hidden=mode!=='movies';
   document.querySelectorAll('.privacy,.practical').forEach(el=>{el.hidden=mode==='movies';});
+  if(mode==='movies'&&navigate)cinema?.show();
   if(navigate)history.replaceState(null,'',mode==='sync'?location.pathname:mode==='movies'&&cinema?cinema.routeHash():'#'+mode);
 }
 const modes=['sync','translate','movies'];

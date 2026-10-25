@@ -39,6 +39,8 @@ def create_app(settings=None, provider=None):
     provider = provider or Provider()
     jobs = Jobs(settings, provider)
     cache = OrderedDict()
+    popular_cache = {"until": 0, "results": []}
+    popular_lock = asyncio.Lock()
     rates = defaultdict(deque)
 
     @asynccontextmanager
@@ -126,6 +128,19 @@ def create_app(settings=None, provider=None):
         if not 2 <= len(q) <= 120:
             raise HTTPException(400, "query_invalid")
         return {"results": await provider.search(q)}
+
+    @app.get(PREFIX + "/popular")
+    async def popular(request: Request):
+        rate(request, "read", 60)
+        async with popular_lock:
+            if time.time() >= popular_cache["until"]:
+                try:
+                    popular_cache["results"] = await provider.popular()
+                    popular_cache["until"] = time.time() + 900
+                except ProviderError:
+                    # Optional discovery must not interrupt searching or playback.
+                    popular_cache.update(results=[], until=time.time() + 60)
+        return {"results": popular_cache["results"]}
 
     @app.get(PREFIX + "/movies/{slug}")
     async def detail(request: Request, slug: str):
