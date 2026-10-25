@@ -4,7 +4,6 @@ import asyncio
 import contextlib
 import html
 import json
-import math
 import os
 import re
 import secrets
@@ -20,11 +19,14 @@ import pysubs2
 import srt
 
 from server.provider import Provider, ProviderError
+from server.segments import DownloadGate, SegmentCache
 
 TOKEN = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 FILES = {"movie.mp4": "video/mp4", "subtitles.srt": "application/x-subrip",
          "subtitles.vtt": "text/vtt", "translated.mp4": "video/mp4",
-         "translated.srt": "application/x-subrip", "translated.vtt": "text/vtt"}
+         "translated.srt": "application/x-subrip", "translated.vtt": "text/vtt",
+         "original.srt": "application/x-subrip", "original.vtt": "text/vtt",
+         "preliminary.vtt": "text/vtt", "preliminary.srt": "application/x-subrip"}
 
 
 @dataclass
@@ -76,7 +78,8 @@ async def command(*args: str, timeout=600) -> str:
         import tempfile
         log = stack.enter_context(tempfile.TemporaryFile())
         process = await asyncio.create_subprocess_exec(*args, stdout=log, stderr=log,
-            start_new_session=True, env={**os.environ, "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"})
+            start_new_session=True, env={**os.environ, "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1",
+                "CUEFLOW_FFMPEG_DIR": str(Path(shutil.which("ffmpeg") or "/usr/bin/ffmpeg").parent)})
         try:
             await asyncio.wait_for(process.wait(), timeout)
         finally:
@@ -98,6 +101,8 @@ class Jobs:
         self.settings, self.provider = settings, provider
         self.entries: dict[str, dict] = {}
         self.tasks: dict[str, asyncio.Task] = {}
+        self.media: dict[str, SegmentCache] = {}
+        self.download_gate = DownloadGate(4)
         self.lock = asyncio.Lock()
 
     def folder(self, token):
@@ -160,7 +165,7 @@ class Jobs:
                 "language": subtitle["language"], "subtitle_name": subtitle["name"],
                 "created": time.time(), "touched": time.time(), "state": "downloading",
                 "progress": 0, "bytes": 0, "error": None, "result": None,
-                "translated_language": None}
+                "translated_language": None, "sync_status": "pending", "stream_ready": False}
             self.persist(token)
             self.tasks[token] = asyncio.create_task(self.prepare(token, movie, subtitle, height))
         return token
@@ -177,25 +182,73 @@ class Jobs:
 
     def public(self, token):
         entry = self.get(token)
-        return {**entry, "token": token,
+        return {**entry, "token": token, "stream_ready": token in self.media and entry.get("stream_ready", False),
             "expires_at": min(entry["created"] + self.settings.max_age_seconds,
                               entry["touched"] + self.settings.idle_seconds),
             "idle_seconds": self.settings.idle_seconds,
-            "files": [name for name in FILES if (self.folder(token) / name).is_file()]
-                if entry["state"] in ("ready", "translating") else []}
+            "files": [name for name in FILES if (self.folder(token) / name).is_file()]}
 
     def phase(self, token, state, progress):
         self.entries[token].update(state=state, progress=progress)
         self.persist(token)
 
+    async def preview_alignment(self, token, text, cache):
+        """Sample early dialogue; failure leaves original captions and the full scan."""
+        folder = self.folder(token)
+        cues = list(srt.parse(text))
+        # A dense early window provides evidence without downloading the whole film.
+        candidates = []
+        for start in range(0, min(600, max(1, int(self.entries[token]["duration"] - 120))), 30):
+            count = sum(start + 16 <= c.start.total_seconds()
+                        and c.end.total_seconds() <= start + 104 for c in cues)
+            if count >= 6:
+                candidates.append((count, -start, start))
+        if not candidates:
+            return
+        start = max(candidates)[2]
+        end, indices, cursor, actual_start = start + 120, [], 0, None
+        for index, (duration, _) in enumerate(cache.segments):
+            if cursor < end and cursor + duration > start:
+                if actual_start is None:
+                    actual_start = cursor
+                indices.append(index)
+            cursor += duration
+        try:
+            async with asyncio.timeout(90):
+                # Bounded workers prevent a sample from filling the gate's queue.
+                remaining = iter(indices)
+                async def worker():
+                    for index in remaining:
+                        await cache.get(index, priority=1)
+                async with asyncio.TaskGroup() as group:
+                    for _ in range(2):
+                        group.create_task(worker())
+                manifest = cache.folder / "sample.m3u8"
+                manifest.write_text(cache.manifest(indices), encoding="utf-8")
+                result = await command(sys.executable, "-m", "server.quick_sync", str(manifest),
+                    str(folder / "original.srt"), str(actual_start),
+                    str(self.entries[token]["duration"]), str(folder / "preliminary.srt"), timeout=30)
+                line = next(x for x in result.splitlines() if x.startswith("CUEFLOW_QUICK_RESULT "))
+                metrics = json.loads(line.removeprefix("CUEFLOW_QUICK_RESULT "))
+                if metrics.get("status") != "preliminary":
+                    return
+                aligned = (folder / "preliminary.srt").read_text(encoding="utf-8")
+                (folder / "preliminary.vtt").write_text(webvtt(aligned), encoding="utf-8")
+                self.entries[token].update(sync_status="preliminary", preliminary_result=metrics)
+                self.persist(token)
+        except (Exception, TimeoutError):
+            # A sample is optional and never replaces verification of the full audio.
+            self.entries[token]["sync_status"] = "pending"
+
     async def prepare(self, token, movie, subtitle, height):
         folder = self.folder(token)
-        pieces = folder / "segments"
-        pieces.mkdir()
+        quick = None
+        cache = None
         try:
             async with asyncio.timeout(2400):
                 text = subtitle_text(await self.provider.subtitle(subtitle), subtitle["format"])
-                (folder / "input.srt").write_text(text, encoding="utf-8")
+                (folder / "original.srt").write_text(text, encoding="utf-8")
+                (folder / "original.vtt").write_text(webvtt(text), encoding="utf-8")
                 segments = None
                 for url in movie["streams"]:
                     try:
@@ -206,54 +259,25 @@ class Jobs:
                 if not segments:
                     raise ProviderError("stream_unavailable")
                 self.entries[token]["duration"] = sum(d for d, _ in segments)
-                gate = asyncio.Semaphore(4)
-                completed, size = 0, 0
-
-                async def segment(index, url):
-                    nonlocal completed, size
-                    async with gate:
-                        # The source rejects sustained bursts. Bound concurrency and
-                        # leave recovery time before retrying transient source failures.
-                        await asyncio.sleep(.25)
-                        data = None
-                        for attempt in range(5):
-                            try:
-                                data = await self.provider.fetch(url, 16_000_000)
-                                break
-                            except (ProviderError, OSError):
-                                if attempt == 4:
-                                    raise
-                                await asyncio.sleep(min(30, 2 ** (attempt + 1)))
-                        if not data or data[0] != 0x47 or len(data) < 188:
-                            raise ProviderError("segment_invalid")
-                        size += len(data)
-                        if size > self.settings.max_media_bytes:
-                            raise ProviderError("movie_too_large")
-                        (pieces / f"{index}.ts").write_bytes(data)
-                        completed += 1
-                        self.entries[token].update(progress=round(completed / len(segments) * 75, 1), bytes=size)
-                        if completed % 20 == 0:
-                            self.persist(token)
-                # TaskGroup cancels every sibling before cleanup when a download fails.
-                async with asyncio.TaskGroup() as group:
-                    for i, (_, url) in enumerate(segments):
-                        group.create_task(segment(i, url))
-                local = ["#EXTM3U", "#EXT-X-VERSION:3",
-                         f"#EXT-X-TARGETDURATION:{math.ceil(max(d for d, _ in segments))}"]
-                for i, (duration, _) in enumerate(segments):
-                    local.extend([f"#EXTINF:{duration},", f"{i}.ts"])
-                local.append("#EXT-X-ENDLIST")
-                manifest = pieces / "local.m3u8"
-                manifest.write_text("\n".join(local) + "\n")
-                self.phase(token, "remuxing", 77)
-                await command("ffmpeg", "-nostdin", "-v", "error", "-y",
-                    "-protocol_whitelist", "file", "-allowed_extensions", "ts,m3u8",
-                    "-i", str(manifest), "-map", "0:v:0", "-map", "0:a:0",
-                    "-c", "copy", "-movflags", "+faststart", str(folder / "raw.mp4"))
-                shutil.rmtree(pieces)
+                def progress(completed, size):
+                    self.entries[token].update(progress=round(completed / len(segments) * 75, 1), bytes=size)
+                    if completed % 20 == 0:
+                        self.persist(token)
+                cache = self.media[token] = SegmentCache(self.provider, self.download_gate,
+                    folder / "segments", segments, self.settings.max_media_bytes, progress)
+                await cache.get(0)
+                self.entries[token].update(stream_ready=True, stream_ready_seconds=round(
+                    time.time() - self.entries[token]["created"], 2))
+                self.persist(token)
+                quick = asyncio.create_task(self.preview_alignment(token, text, cache))
+                await cache.download_all()
+                quick.cancel()
+                await asyncio.gather(quick, return_exceptions=True)
+                manifest = cache.folder / "local.m3u8"
+                manifest.write_text(cache.manifest(), encoding="utf-8")
                 self.phase(token, "synchronizing", 85)
                 result = await command(sys.executable, "-m", "server.sync_worker",
-                    str(folder / "raw.mp4"), str(folder / "input.srt"), str(folder), timeout=900)
+                    str(manifest), str(folder / "original.srt"), str(folder), timeout=900)
                 line = next((x for x in result.splitlines() if x.startswith("CUEFLOW_RESULT ")), None)
                 if not line:
                     raise ProviderError("alignment_failed")
@@ -262,17 +286,20 @@ class Jobs:
                 text = aligned.read_text(encoding="utf-8")
                 aligned.replace(folder / "subtitles.srt")
                 (folder / "subtitles.vtt").write_text(webvtt(text), encoding="utf-8")
-                self.entries[token]["result"] = metrics
+                self.entries[token].update(result=metrics, sync_status="verified")
                 self.phase(token, "packaging", 95)
-                await self.mux(token, "raw.mp4", "subtitles.srt", "movie.mp4", subtitle["language"])
-                (folder / "raw.mp4").unlink()
-                (folder / "input.srt").unlink()
+                await self.mux(token, "segments/local.m3u8", "subtitles.srt", "movie.mp4", subtitle["language"])
                 self.phase(token, "ready", 100)
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            if quick:
+                quick.cancel()
+                await asyncio.gather(quick, return_exceptions=True)
+            if cache:
+                await cache.close()
+            self.media.pop(token, None)
             if isinstance(exc, ExceptionGroup):
-                # TaskGroup wraps the real download failure; keep its actionable code.
                 while isinstance(exc, ExceptionGroup):
                     exc = exc.exceptions[0]
             error = "processing_failed"
@@ -282,8 +309,12 @@ class Jobs:
                 error = "processing_timeout"
             shutil.rmtree(folder)
             folder.mkdir(mode=0o700)
-            self.entries[token].update(state="error", error=error)
+            self.entries[token].update(state="error", error=error, stream_ready=False)
             self.persist(token)
+        finally:
+            if quick:
+                quick.cancel()
+                await asyncio.gather(quick, return_exceptions=True)
 
     async def mux(self, token, video, subtitle, output, language):
         folder = self.folder(token)
@@ -292,7 +323,7 @@ class Jobs:
             "-protocol_whitelist", "file", "-i", str(folder / video),
             "-i", str(folder / subtitle), "-map", "0:v:0", "-map", "0:a:0", "-map", "1:0",
             "-c:v", "copy", "-c:a", "copy", "-c:s", "mov_text",
-            "-metadata:s:s:0", "language=" + language, "-movflags", "+faststart", str(target))
+            "-metadata:s:s:0", "language=" + {"en":"eng", "es":"spa", "ja":"jpn", "fr":"fra", "de":"deu", "it":"ita", "pt":"por", "pb":"por", "zh":"zho", "ru":"rus", "ar":"ara"}.get(language, language), "-movflags", "+faststart", str(target))
         target.replace(folder / output)
 
     async def translate(self, token, text, language):
@@ -348,6 +379,9 @@ class Jobs:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
+        cache = self.media.pop(token, None)
+        if cache:
+            await cache.close()
         self.entries.pop(token, None)
         shutil.rmtree(self.folder(token), ignore_errors=True)
 
@@ -360,3 +394,4 @@ class Jobs:
         for task in self.tasks.values():
             task.cancel()
         await asyncio.gather(*self.tasks.values(), return_exceptions=True)
+        await asyncio.gather(*(cache.close() for cache in self.media.values()))

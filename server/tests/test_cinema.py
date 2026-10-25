@@ -201,5 +201,8 @@ async def test_real_media_pipeline_aligns_and_embeds_subtitles(tmp_path):
         c.content for c in srt.parse(subs.read_text())]
     output = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(folder / "movie.mp4")]))
     assert {s["codec_type"] for s in output["streams"]} == {"video", "audio", "subtitle"}
-    assert not (folder / "segments").exists()
+    assert (folder / "segments" / "local.m3u8").is_file()
+    assert jobs.public(token)["stream_ready"]
+    assert entry["sync_status"] == "verified"
+    assert next(s for s in output["streams"] if s["codec_type"] == "subtitle")["tags"]["language"] == "eng"
     await jobs.remove(token)

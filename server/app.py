@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from server.jobs import FILES, Jobs, Settings
 from server.provider import SLUG, Provider, ProviderError
@@ -174,7 +174,7 @@ def create_app(settings=None, provider=None):
     @app.api_route(PREFIX + "/jobs/{token}/files/{name}", methods=["GET", "HEAD"])
     async def file(token: str, name: str, download: bool = False):
         entry = jobs.get(token)
-        if name not in FILES or entry["state"] not in ("ready", "translating"):
+        if name not in FILES or entry["state"] == "error":
             raise HTTPException(404, "file_unavailable")
         path = jobs.folder(token) / name
         if not path.is_file():
@@ -182,6 +182,23 @@ def create_app(settings=None, provider=None):
         return FileResponse(path, media_type=FILES[name],
             filename=entry["slug"] + "." + name if download else None,
             content_disposition_type="attachment" if download else "inline")
+
+    @app.get(PREFIX + "/jobs/{token}/stream.m3u8")
+    async def stream(token: str):
+        jobs.get(token)
+        cache = jobs.media.get(token)
+        if not cache:
+            raise HTTPException(404, "stream_unavailable")
+        return Response(cache.manifest(remote=True), media_type="application/vnd.apple.mpegurl")
+
+    @app.api_route(PREFIX + "/jobs/{token}/segments/{index}.ts", methods=["GET", "HEAD"])
+    async def segment(token: str, index: int):
+        jobs.get(token)
+        cache = jobs.media.get(token)
+        if not cache or not 0 <= index < len(cache.segments):
+            raise HTTPException(404, "segment_unavailable")
+        path = await cache.get(index, priority=0)
+        return FileResponse(path, media_type="video/mp2t")
 
     return app
 

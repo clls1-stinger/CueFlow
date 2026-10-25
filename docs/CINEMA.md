@@ -1,8 +1,16 @@
 # Películas y subtítulos temporales
 
-La pestaña Películas consulta StreamIMDB, permite elegir una película, la versión de subtítulos y una calidad de hasta 480p o 720p. Oracle descarga el video, ejecuta el mismo motor de sincronización de la aplicación de escritorio y genera un MP4 con una pista de subtítulos seleccionable. También entrega SRT y VTT sincronizados. Los subtítulos se alinean con la actividad de voz del audio; conviene revisar algunos diálogos al principio y al final.
+La pestaña Películas consulta StreamIMDB, permite elegir una película, la versión de subtítulos y una calidad de hasta 480p o 720p. La reproducción empieza por segmentos mientras Oracle descarga el video. Después ejecuta el mismo motor de sincronización de la aplicación de escritorio y genera un MP4 con una pista de subtítulos seleccionable. También entrega SRT y VTT sincronizados. Los subtítulos se alinean con la actividad de voz del audio; conviene revisar algunos diálogos al principio y al final.
 
-La búsqueda incluye los idiomas que devuelva OpenSubtitles y los subtítulos anunciados por el reproductor. Cuando falta un idioma, el usuario puede traducir una versión encontrada con Google, con consentimiento explícito. La traducción conserva los tiempos sincronizados. Su disponibilidad y calidad dependen del idioma y del proveedor. La descarga y el análisis pueden tardar varios minutos; la interfaz muestra el avance.
+La búsqueda incluye los idiomas que devuelva OpenSubtitles y los subtítulos anunciados por el reproductor. Cuando falta un idioma, el usuario puede traducir una versión encontrada con Google, con consentimiento explícito. La traducción empieza con los subtítulos disponibles y muestra cada tanda terminada. Al completarse la sincronización, se aplican los tiempos verificados a todos los diálogos traducidos antes de generar el MP4. Los lotes ya traducidos se conservan en la pestaña para reintentar un fallo. Su disponibilidad y calidad dependen del idioma y del proveedor. La descarga completa y el análisis pueden tardar varios minutos; no bloquean el inicio de la reproducción. La traducción necesita la pestaña y el panel de Google visibles: una pestaña oculta o el video en pantalla completa pueden pausarla.
+
+## Inicio rápido y sincronización
+
+El servidor comparte una caché de segmentos entre reproducción, muestras de audio y descarga completa. Las solicitudes de reproducción tienen prioridad sobre los trabajos de fondo. El límite de cuatro descargas simultáneas se comparte entre todas las sesiones; los reintentos esperan fuera de ese límite. Adelantar el video solicita el segmento correspondiente sin esperar a los anteriores.
+
+Se intenta un ajuste preliminar con una muestra de unos 120 segundos de diálogo. El resultado debe concordar entre tres regiones y superar comprobaciones de voz y contraste. Si la muestra no aporta evidencia suficiente, se conservan los subtítulos originales con el aviso de sincronización pendiente. Un ajuste preliminar no confirma la escala temporal de toda la película. El motor completo sigue siendo la verificación final.
+
+La interfaz distingue subtítulos originales, ajuste preliminar y sincronización verificada. La descarga del MP4 queda disponible al terminar el procesamiento. Un reproductor que ya está usando HLS conserva su fuente durante ese cambio, para no interrumpirlo. Tras reiniciar el servicio, las sesiones completas se reproducen desde el MP4.
 
 ## Almacenamiento y enlaces
 
@@ -15,7 +23,7 @@ Cada preparación recibe un identificador aleatorio de 256 bits. El enlace de re
 - Hasta dos trabajos simultáneos, seis sesiones y 12 GiB de almacenamiento temporal. Cada descarga tiene un límite de 2 GiB y cuatro horas; se reservan al menos 6 GiB libres.
 - No se guardan películas en el service worker. Las respuestas de sesiones y archivos usan `private, no-store`. Las descargas que el usuario guarde en su equipo permanecen allí.
 
-La reproducción soporta peticiones Range. El enlace permanente de una película es `/#movie/<slug>`; un enlace `/#watch/<token>/<slug>` recupera la sesión mientras exista y vuelve a ofrecer la película cuando caduque.
+El MP4 soporta peticiones Range. Los manifiestos HLS contienen únicamente rutas de la propia sesión; los segmentos conservan la misma caducidad que el MP4. El enlace permanente de una película es `/#movie/<slug>`; un enlace `/#watch/<token>/<slug>` recupera la sesión mientras exista y vuelve a ofrecer la película cuando caduque.
 
 ## Fuente y límites
 
@@ -51,6 +59,6 @@ npm run build
 npm run test:e2e
 ```
 
-Las pruebas del servidor incluyen una película sintética que recorre HLS local, sincronización real, conservación del texto y pista de subtítulos en MP4; también cubren caducidad tras reinicio, cancelación, enlaces, Range y rechazo de destinos ajenos. Las pruebas de interfaz cubren selección, idiomas, descarga, recuperación de sesión, caducidad y móvil. El proveedor de las pruebas automáticas es simulado para que no dependan de una película ajena.
+Las pruebas del servidor incluyen una película sintética que recorre HLS local, sincronización real, conservación del texto y pista de subtítulos en MP4; también cubren caducidad tras reinicio, cancelación, enlaces, Range y rechazo de destinos ajenos. Las pruebas de interfaz cubren selección, idiomas, descarga, recuperación de sesión, caducidad y móvil, además de reproducción HLS y búsqueda de un punto del video antes de terminar el MP4. Comprueban también traducción progresiva, conservación de los tiempos finales y visibilidad del panel de Google. La película de referencia produjo 639 diálogos traducidos en 105.373 segundos, con sus tiempos y marcas de formato intactos; esta medición depende del proveedor y no constituye una garantía de latencia. El proveedor de las pruebas automáticas es simulado para que no dependan de una película ajena.
 
 Story Vega: `f4189c54-8cba-420d-87d0-fcdb83f0bf6e`.

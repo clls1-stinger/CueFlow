@@ -20,7 +20,8 @@
 #translate-panel select{width:100%}#translate-run{width:100%}.translation-files button:disabled{cursor:wait}.cue-columns textarea:disabled{opacity:.7}
 @media(max-width:600px){.cue-columns{grid-template-columns:1fr;gap:12px}.cue-original{margin-top:0;font-size:14px}.mode-tabs button{font-size:14px;padding:12px}.cue-times{gap:8px}.cue-times input{font-size:13px;padding:10px 6px}#translate-panel h2{font-size:24px}.translate-upload{padding:16px}}
 
-.google-frame{width:100%;height:180px;border:1px solid #52565f;border-radius:4px;margin-top:20px;background:white}.google-credit{font-size:12px!important}
+/* The widget starts translating only while its iframe intersects the viewport. */
+.google-frame{position:fixed;z-index:30;right:16px;bottom:16px;width:min(520px,calc(100vw - 32px));height:180px;max-height:calc(100dvh - 32px);border:1px solid #52565f;border-radius:4px;margin:0;background:white;box-shadow:0 4px 24px #0006}.google-credit{font-size:12px!important}
 .cue-times input{background:#141516;color:#f7f8f8;border:1px solid #52565f;border-radius:4px;padding:12px;font:inherit;font-variant-numeric:tabular-nums}
 .editor-pager .secondary{width:auto;flex:0 1 auto}.editor-pager span{white-space:nowrap;min-width:48px;text-align:center}
 #translate-panel .translation-consent{display:grid;grid-template-columns:20px 1fr;gap:12px}.translation-consent input{margin-top:5px}#translate-panel .translation-consent span{margin:0}
