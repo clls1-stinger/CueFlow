@@ -1,6 +1,7 @@
 import './style.css';
 import { setupTranslator } from './translator.js';
 import { setupPwa } from './pwa.js';
+import { setupCinema } from './cinema.js';
 import { messages } from './i18n.js';
 import { decodeSrt, parseSrt, applyTiming } from './subtitles.js';
 import { MediaSession } from './media.js';
@@ -11,19 +12,25 @@ if (!messages[lang]) lang = 'es';
 let video, subtitle, session, analyzer, outputURL, generation = 0, busy = false, syncing = false, phase = '', fraction = 0, started = 0, errorKey = '', watchdog, rejectAnalysis;
 const t = key => messages[lang][key];
 const translator = setupTranslator(() => lang);
-function changeMode(mode) {
-  for (const key of ['sync','translate']) { const tab=$('mode-'+key);tab.setAttribute('aria-selected',String(key===mode));tab.tabIndex=key===mode?0:-1; }
+function changeMode(mode, navigate=true) {
+  for (const key of ['sync','translate','movies']) { const tab=$('mode-'+key);tab.setAttribute('aria-selected',String(key===mode));tab.tabIndex=key===mode?0:-1; }
   $('sync-workspace').hidden=mode!=='sync';$('translate-panel').hidden=mode!=='translate';
-  history.replaceState(null,'',mode==='translate'?'#translate':location.pathname);
+  $('cinema-panel').hidden=mode!=='movies';
+  document.querySelectorAll('.privacy,.practical').forEach(el=>{el.hidden=mode==='movies';});
+  if(navigate)history.replaceState(null,'',mode==='sync'?location.pathname:'#'+mode);
 }
-for(const key of ['sync','translate']) { $('mode-'+key).onclick=()=>changeMode(key);$('mode-'+key).onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=key==='sync'?'translate':'sync';changeMode(next);$('mode-'+next).focus();}};}
+const modes=['sync','translate','movies'];
+for(const key of modes) { $('mode-'+key).onclick=()=>changeMode(key);$('mode-'+key).onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const index=e.key==='Home'?0:e.key==='End'?2:(modes.indexOf(key)+(e.key==='ArrowRight'?1:2))%3;const next=modes[index];changeMode(next);$('mode-'+next).focus();}};}
 if(location.hash==='#translate')changeMode('translate');
+const cinema = setupCinema(()=>lang, changeMode);
 function translate() {
   document.documentElement.lang = lang;
   document.title = lang === 'es' ? 'CueFlow — Sincroniza, traduce y edita subtítulos' : 'CueFlow — Subtitle sync, Google translation & editor';
   translator?.retranslate();
+  cinema.retranslate();
   $('mode-sync').textContent = lang === 'es' ? 'Sincronizar' : 'Synchronize';
   $('mode-translate').textContent = lang === 'es' ? 'Traducir y editar' : 'Translate & edit';
+  $('mode-movies').textContent = lang === 'es' ? 'Películas' : 'Movies';
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   $('language').textContent = lang === 'es' ? 'EN' : 'ES';
   $('language').setAttribute('aria-label', lang === 'es' ? 'Switch to English' : 'Cambiar a español');

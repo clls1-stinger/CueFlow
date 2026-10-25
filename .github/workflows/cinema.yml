@@ -1,0 +1,20 @@
+name: Cinema service tests
+on:
+  push:
+    paths: ['server/**', 'cueflow/engine.py', '.github/workflows/cinema.yml']
+  pull_request:
+    paths: ['server/**', 'cueflow/engine.py', '.github/workflows/cinema.yml']
+permissions:
+  contents: read
+jobs:
+  cinema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - run: pip install -r server/requirements.lock pytest pytest-asyncio
+      - run: python -m pytest server/tests -q

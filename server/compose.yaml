@@ -1,0 +1,39 @@
+services:
+  cueflow-cinema:
+    image: cueflow-cinema:${CUEFLOW_COMMIT:-local}
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+      args:
+        COMMIT: ${CUEFLOW_COMMIT:-local}
+    container_name: cueflow-cinema
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    volumes:
+      - cueflow-media:/data
+    environment:
+      CUEFLOW_IDLE_SECONDS: ${CUEFLOW_IDLE_SECONDS:-3600}
+      CUEFLOW_MAX_AGE_SECONDS: ${CUEFLOW_MAX_AGE_SECONDS:-21600}
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/cinema/health', timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+    networks:
+      - oracle-tunnel
+volumes:
+  cueflow-media:
+networks:
+  oracle-tunnel:
+    external: true
+    name: vegacore_vega-net

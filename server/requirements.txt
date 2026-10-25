@@ -1,0 +1,8 @@
+fastapi==0.162.0
+uvicorn==0.54.0
+httpx==0.28.1
+beautifulsoup4==4.15.0
+pysubs2==1.9.0
+ffsubsync==0.5.1
+ftfy==6.3.1
+psutil==7.0.0

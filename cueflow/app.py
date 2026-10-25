@@ -172,6 +172,9 @@ class Window(QMainWindow):
         self.search_button = QPushButton()
         self.search_button.clicked.connect(self.open_search)
         home_layout.addWidget(self.search_button, alignment=Qt.AlignLeft)
+        self.movies_button = QPushButton()
+        self.movies_button.clicked.connect(self.open_movies)
+        home_layout.addWidget(self.movies_button, alignment=Qt.AlignLeft)
         self.home_note = label(role="muted")
         home_layout.addWidget(self.home_note)
         home_layout.addStretch()
@@ -316,6 +319,12 @@ class Window(QMainWindow):
         dialog = SubtitleSearch(self.lang, self.paths.get("video", ""), lambda: self.browse("subtitle"), self)
         dialog.exec()
 
+    def open_movies(self):
+        from cueflow.cinema import CinemaDialog
+
+        dialog = CinemaDialog(self.lang, self)
+        dialog.exec()
+
     def show_sync(self):
         self.pages.setCurrentIndex(1)
         self.refresh_status()
@@ -332,6 +341,7 @@ class Window(QMainWindow):
         self.retranslate()
 
     def retranslate(self):
+        self.movies_button.setText("Buscar y ver películas" if self.lang == "es" else "Find and watch movies")
         for button in (self.search_button, self.search_sync):
             button.setText(self.t("find_subtitles"))
         for widget, key in [(self.home_title, "home_title"), (self.home_intro, "home_intro"),

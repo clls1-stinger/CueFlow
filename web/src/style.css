@@ -25,3 +25,33 @@
 .editor-pager .secondary{width:auto;flex:0 1 auto}.editor-pager span{white-space:nowrap;min-width:48px;text-align:center}
 #translate-panel .translation-consent{display:grid;grid-template-columns:20px 1fr;gap:12px}.translation-consent input{margin-top:5px}#translate-panel .translation-consent span{margin:0}
 .translate-upload{position:relative}.translate-upload input{position:absolute;width:1px;height:1px;opacity:0}.translate-upload:focus-within{outline:2px solid #d0d6e0;outline-offset:3px}
+
+/* Cinema uses the existing workspace, typography and button hierarchy. */
+.cinema-search-row { display:flex; gap:12px; align-items:stretch; margin-top:8px; }
+.cinema-search-row input { min-width:0; flex:1; }
+.cinema-search-row button { width:auto; margin:0; padding-inline:24px; }
+.cinema-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:20px; }
+.cinema-result { display:flex; flex-direction:column; text-align:left; gap:8px; background:#141516; border:1px solid #34343a; border-radius:4px; padding:16px; color:#f7f8f8; cursor:pointer; }
+.cinema-result:hover { border-color:#a6abb4; }
+.cinema-result span { color:#a6abb4; font-size:12px; }
+.cinema-options { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+#cinema-panel label { display:block; margin:16px 0; }
+#cinema-panel label span { display:block; margin-bottom:8px; }
+#cinema-panel label.checkbox { display:flex; gap:10px; align-items:flex-start; }
+#cinema-panel .checkbox input { width:auto; margin-top:3px; }
+#cinema-panel label.checkbox span { margin:0; }
+#cinema-panel select,#cinema-panel input[type=search] { width:100%; min-width:0; padding:12px; background:#141516; color:#f7f8f8; border:1px solid #34343a; border-radius:4px; }
+#cinema-panel h2 { margin:24px 0 14px; }
+#cinema-session { border-top:1px solid #34343a; margin-top:28px; padding-top:12px; }
+#cinema-video { width:100%; background:#08090a; border-radius:4px; margin:12px 0; max-height:65vh; }
+#cinema-error { color:#ffb7a6; line-height:1.5; }
+#cinema-progress { width:100%; }
+.cinema-actions { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+.cinema-actions a { margin:0; text-align:center; flex:1; }
+#cinema-panel [hidden] { display:none !important; }
+@media (max-width:600px) {
+  .cinema-options,.cinema-results { grid-template-columns:1fr; }
+  .cinema-actions { flex-direction:column; align-items:stretch; }
+  .mode-tabs button { padding-inline:10px; font-size:13px; }
+  .cinema-search-row button { padding-inline:16px; }
+}
