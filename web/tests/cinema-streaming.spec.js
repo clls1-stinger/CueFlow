@@ -38,7 +38,7 @@ test('plays and seeks HLS before MP4 is ready, then keeps playback during export
 });
 
 test('shows translated batches early and submits them using final verified timing',async({page})=>{
-  let exported=false,submitted;
+  let exported=false,submitted,widgetRequests=0;
   const srt=shift=>Array.from({length:23},(_,i)=>`${i+1}\n00:00:${String(i*2+1+shift).padStart(2,'0')},000 --> 00:00:${String(i*2+2+shift).padStart(2,'0')},000\nHello ${i+1}.\n`).join('\n');
   await page.route('**/api/cinema/**',async route=>{
     const path=new URL(route.request().url()).pathname;
@@ -48,10 +48,10 @@ test('shows translated batches early and submits them using final verified timin
     if(path.endsWith('.mp4'))return route.fulfill({status:404});
     return route.fulfill({json:{...state,stream_ready:false,...(exported?{state:'ready',result:{offset:1,scale:1,cues:23},files:['original.srt','original.vtt','movie.mp4','subtitles.srt','subtitles.vtt']}:{})}});
   });
-  await page.route('**/google-translate.html',route=>route.fulfill({contentType:'text/html',body:`<script>
+  await page.route('**/google-translate.html',route=>{widgetRequests++;return route.fulfill({contentType:'text/html',body:`<script>
     parent.postMessage({type:'cueflow-google-ready'},location.origin);
-    onmessage=e=>{if(e.data.type==='cueflow-google-start')setTimeout(()=>parent.postMessage({type:'cueflow-google-result',translations:e.data.texts.map(t=>'Hola '+t.match(/\\d+/)[0]+'.')},location.origin),e.data.texts.length===20?50:3500);};
-  </script>`}));
+    onmessage=e=>{if(e.data.type==='cueflow-google-start')setTimeout(()=>parent.postMessage(${widgetRequests===2?"{type:'cueflow-google-result',error:'googleUnavailable'}":"{type:'cueflow-google-result',translations:e.data.texts.map(t=>'Hola '+t.match(/\\d+/)[0]+'.')}"},location.origin),e.data.texts.length===20?50:3500);};
+  </script>`});});
   await page.goto('/#watch/'+token+'/original-fixture');
   await page.locator('#cinema-translation summary').click();
   await page.locator('#cinema-target').selectOption('es');await page.locator('#cinema-translate-consent').check();await page.locator('#cinema-translate').click();
@@ -64,4 +64,6 @@ test('shows translated batches early and submits them using final verified timin
   await expect.poll(()=>submitted,{timeout:15000}).toBeTruthy();
   expect(submitted.language).toBe('es');expect(submitted.text).toContain('00:00:02,000 --> 00:00:03,000\nHola 1.');
   expect((submitted.text.match(/Hola /g)||[]).length).toBe(23);
+  expect(widgetRequests).toBe(3);
+  await expect(page.locator('#cinema-error')).toBeHidden();
 });

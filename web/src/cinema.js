@@ -244,7 +244,22 @@ export function setupCinema(getLanguage, activate) {
         if(job?.token!==token)return;
         if(indices.every(i=>draft.texts[i]!==undefined))continue;
         $('translation-status').textContent=`${t('translation')} · ${draft.done}/${doc.cues.length}`;
-        const result=await googleTranslate(indices.map(i=>doc.cues[i].text),job.language==='pb'?'pt':job.language,target,getLanguage(),$('google-frame'),translation.signal);
+        let result;
+        const signal=translation.signal;
+        for(let attempt=0;attempt<3;attempt++){
+          if(signal.aborted||job?.token!==token)throw new Error('cancelled');
+          try{
+            result=await googleTranslate(indices.map(i=>doc.cues[i].text),job.language==='pb'?'pt':job.language,target,getLanguage(),$('google-frame'),signal);
+            break;
+          }catch(e){
+            if(attempt===2||!['googleUnavailable','googleTimeout'].includes(e.message))throw e;
+            await new Promise((resolve,reject)=>{
+              const abort=()=>{clearTimeout(timer);reject(new Error('cancelled'));};
+              const timer=setTimeout(()=>{signal.removeEventListener('abort',abort);resolve();},attempt===0?2000:5000);
+              signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
+            });
+          }
+        }
         if(job?.token!==token)return;
         indices.forEach((i,j)=>{draft.texts[i]=result[j];});draft.done= draft.texts.filter(text=>text!==undefined).length;
         $('translation-status').textContent=`${t('translation')} · ${draft.done}/${doc.cues.length}`;
