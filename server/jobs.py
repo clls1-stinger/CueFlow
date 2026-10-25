@@ -206,21 +206,24 @@ class Jobs:
                 if not segments:
                     raise ProviderError("stream_unavailable")
                 self.entries[token]["duration"] = sum(d for d, _ in segments)
-                gate = asyncio.Semaphore(8)
+                gate = asyncio.Semaphore(4)
                 completed, size = 0, 0
 
                 async def segment(index, url):
                     nonlocal completed, size
                     async with gate:
+                        # The source rejects sustained bursts. Bound concurrency and
+                        # leave recovery time before retrying transient source failures.
+                        await asyncio.sleep(.25)
                         data = None
-                        for attempt in range(3):
+                        for attempt in range(5):
                             try:
                                 data = await self.provider.fetch(url, 16_000_000)
                                 break
                             except (ProviderError, OSError):
-                                if attempt == 2:
+                                if attempt == 4:
                                     raise
-                                await asyncio.sleep(attempt + 1)
+                                await asyncio.sleep(min(30, 2 ** (attempt + 1)))
                         if not data or data[0] != 0x47 or len(data) < 188:
                             raise ProviderError("segment_invalid")
                         size += len(data)
@@ -267,7 +270,11 @@ class Jobs:
                 self.phase(token, "ready", 100)
         except asyncio.CancelledError:
             raise
-        except BaseException as exc:
+        except Exception as exc:
+            if isinstance(exc, ExceptionGroup):
+                # TaskGroup wraps the real download failure; keep its actionable code.
+                while isinstance(exc, ExceptionGroup):
+                    exc = exc.exceptions[0]
             error = "processing_failed"
             if isinstance(exc, ProviderError):
                 error = str(exc)

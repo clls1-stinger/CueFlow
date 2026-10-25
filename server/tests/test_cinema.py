@@ -174,11 +174,15 @@ async def test_real_media_pipeline_aligns_and_embeds_subtitles(tmp_path):
         str(manifest)], check=True, timeout=30)
     segments = parse_media_playlist(manifest.read_text(), "https://onlinecoursecreator.site/input.m3u8")
     class FixtureProvider:
+        retries = 0
         async def subtitle(self, item):
             return subs.read_bytes()
         async def playlist(self, url, height):
             return segments, url
         async def fetch(self, url, limit):
+            if url.endswith("input0.ts") and self.retries < 1:
+                self.retries += 1
+                raise ProviderError("source_unavailable")
             return (source / url.rsplit("/", 1)[1]).read_bytes()
     root = tmp_path / "jobs"
     settings = Settings(root, min_free_bytes=0, max_media_bytes=100_000_000)
@@ -190,6 +194,7 @@ async def test_real_media_pipeline_aligns_and_embeds_subtitles(tmp_path):
     await jobs.tasks[token]
     entry = jobs.get(token)
     assert entry["state"] == "ready", entry
+    assert jobs.provider.retries == 1
     assert entry["result"]["offset"] == pytest.approx(-2, abs=.5)
     folder = jobs.folder(token)
     assert [c.content for c in srt.parse((folder / "subtitles.srt").read_text())] == [
