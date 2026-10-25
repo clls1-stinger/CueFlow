@@ -61,3 +61,44 @@ def test_popular_cache_refreshes_and_source_outage_does_not_break_search(tmp_pat
         now[0] += 901
         assert client.get('/api/cinema/popular').json() == {'results': []}
         assert client.get('/api/cinema/search?q=test').json()['results'][0]['slug'] == 'search-result'
+
+
+@pytest.mark.asyncio
+async def test_player_api_registers_only_scoped_manifest_hosts(monkeypatch):
+    import json
+
+    from server.provider import allowed_url, parse_media_playlist
+
+    provider = Provider()
+    cdn = 'https://new-cinema-cdn.example/film/master.m3u8'
+    async def fetch(url, limit=0):
+        if url.startswith('https://streamimdb.ru/movie/'):
+            return b'window.__cbCwMeta = {"type":"movie","id":123,"title":"Test"};'
+        assert url == 'https://streamdata.vaplayer.ru/api.php?tmdb=123&type=movie'
+        return json.dumps({'status_code':200,'data':{'stream_urls':[cdn]},'default_subs':[]}).encode()
+    provider.fetch = fetch
+    try:
+        with pytest.raises(ProviderError, match='source_url_rejected'):
+            allowed_url(cdn, provider.media_hosts)
+        movie = await provider.movie('test-film')
+        assert movie['streams'] == [cdn]
+        assert allowed_url(cdn, provider.media_hosts) == cdn
+        playlist = '#EXTM3U\n#EXTINF:5,\npart.ts\n#EXT-X-ENDLIST'
+        assert parse_media_playlist(playlist, cdn, provider.media_hosts) == [(5, 'https://new-cinema-cdn.example/film/part.ts')]
+        with pytest.raises(ProviderError, match='source_url_rejected'):
+            parse_media_playlist(playlist.replace('part.ts','https://unregistered.example/part.ts'), cdn, provider.media_hosts)
+        for value in ['http://new-cinema-cdn.example/a.m3u8','https://127.0.0.1/a.m3u8',
+                      'https://localhost/a.m3u8','https://[::1]/a.m3u8',
+                      'https://user:secret@new-cinema-cdn.example/a.m3u8',
+                      'https://new-cinema-cdn.example:8443/a.m3u8','https://new-cinema-cdn.example/arbitrary.html']:
+            with pytest.raises(ProviderError, match='stream_unavailable'):
+                provider.register_streams([value])
+        # Even a domain from the player API cannot turn into an internal request.
+        monkeypatch.setattr('server.provider.socket.getaddrinfo', lambda *a: [(2, 1, 6, '', ('127.0.0.1', 443))])
+        with pytest.raises(ProviderError, match='source_address_rejected'):
+            await provider._fetch(cdn, 1000)
+        provider.media_hosts = {f'cdn-{n}.example' for n in range(128)}
+        with pytest.raises(ProviderError, match='stream_unavailable'):
+            provider.register_streams([cdn])
+    finally:
+        await provider.close()

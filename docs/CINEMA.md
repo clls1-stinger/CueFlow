@@ -27,7 +27,7 @@ El MP4 soporta peticiones Range. Los manifiestos HLS contienen únicamente rutas
 
 ## Fuente y límites
 
-El adaptador interpreta las fichas públicas y las peticiones que realiza el reproductor. No ejecuta sus anuncios ni su JavaScript en Oracle. Solo permite hosts explícitos, comprueba direcciones públicas y redirecciones, limita respuestas y descarga los segmentos por separado. FFmpeg recibe un manifiesto local que no puede abrir recursos de red. No hay endpoint para descargar una URL arbitraria.
+El adaptador interpreta las fichas públicas y las peticiones que realiza el reproductor. No ejecuta sus anuncios ni su JavaScript en Oracle. El catálogo y los subtítulos usan una lista fija de hosts. Para el video se admiten hasta 128 hosts de manifiestos HTTPS anunciados por la API del reproductor; no se reciben URLs del usuario. Cada descarga y redirección comprueba que el destino resuelva a direcciones públicas, limita la respuesta y guarda los segmentos por separado. FFmpeg recibe un manifiesto local que no puede abrir recursos de red. No hay endpoint para descargar una URL arbitraria.
 
 Se admiten listas HLS VOD con segmentos MPEG-TS. Las listas con claves, rangos de bytes, mapas de inicialización u otros formatos no admitidos producen un error visible. El adaptador requiere que la API devuelva enlaces de stream como una lista; no resuelve retos de acceso. Si el proveedor cambia su contrato, debe actualizarse el adaptador con evidencia nueva.
 

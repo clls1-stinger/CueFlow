@@ -35,9 +35,10 @@ class ProviderError(Exception):
     pass
 
 
-def allowed_url(url: str) -> str:
+def allowed_url(url: str, media_hosts=()) -> str:
     p = urlsplit(url)
-    if (p.scheme != "https" or p.hostname not in HOSTS or p.port not in (None, 443)
+    if (p.scheme != "https" or (p.hostname not in HOSTS and p.hostname not in media_hosts)
+            or p.port not in (None, 443)
             or p.username or p.password or p.fragment):
         raise ProviderError("source_url_rejected")
     return url
@@ -45,6 +46,7 @@ def allowed_url(url: str) -> str:
 
 class Provider:
     def __init__(self):
+        self.media_hosts = set()
         self.client = httpx.AsyncClient(
             headers=HEADERS, timeout=httpx.Timeout(30, connect=15),
             limits=httpx.Limits(max_connections=20), follow_redirects=False,
@@ -62,7 +64,7 @@ class Provider:
 
     async def _fetch(self, url: str, limit: int) -> bytes:
         for _ in range(4):
-            allowed_url(url)
+            allowed_url(url, self.media_hosts)
             host = urlsplit(url).hostname
             addresses = await asyncio.wait_for(
                 asyncio.to_thread(socket.getaddrinfo, host, 443, 0, socket.SOCK_STREAM), 15)
@@ -81,6 +83,30 @@ class Provider:
                         raise ProviderError("source_too_large")
                 return bytes(data)
         raise ProviderError("source_redirects")
+
+    def register_streams(self, urls) -> list[str]:
+        # Called only for manifest URLs returned by the fixed player API below.
+        # Each request still resolves DNS and rejects non-public addresses.
+        streams, hosts = [], set()
+        for url in urls[:6]:
+            if not isinstance(url, str):
+                continue
+            try:
+                parsed = urlsplit(url)
+                host = parsed.hostname or ""
+                if not re.fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}", host):
+                    continue
+                if not parsed.path.endswith(".m3u8"):
+                    continue
+                allowed_url(url, {host})
+            except (ProviderError, ValueError):
+                continue
+            hosts.add(host)
+            streams.append(url)
+        if not streams or len(self.media_hosts | hosts) > 128:
+            raise ProviderError("stream_unavailable")
+        self.media_hosts.update(hosts)
+        return streams
 
     async def search(self, query: str) -> list[dict]:
         body = await self.fetch("https://streamimdb.ru/search?q=" + quote(query))
@@ -135,7 +161,7 @@ class Provider:
         streams = data.get("stream_urls")
         if str(info.get("status_code")) != "200" or not isinstance(streams, list) or not streams:
             raise ProviderError("movie_unavailable")
-        streams = [allowed_url(u) for u in streams[:6] if isinstance(u, str)]
+        streams = self.register_streams(streams)
         imdb = str(data.get("imdb_id", ""))
         subtitles = []
         subtitle_error = False
@@ -192,12 +218,12 @@ class Provider:
                     size = re.search(r"RESOLUTION=\d+x(\d+)", line)
                     variants.append((int(size[1]) if size else 0, urljoin(url, lines[i+1])))
             if not variants:
-                return parse_media_playlist(text, url), url
+                return parse_media_playlist(text, url, self.media_hosts), url
             if depth:
                 raise ProviderError("playlist_invalid")
             under = [x for x in variants if x[0] <= height]
             url = (max(under) if under else min(variants))[1]
-            allowed_url(url)
+            allowed_url(url, self.media_hosts)
         raise ProviderError("playlist_invalid")
 
     async def subtitle(self, item: dict) -> bytes:
@@ -210,7 +236,7 @@ class Provider:
         return data
 
 
-def parse_media_playlist(text: str, base: str) -> list[tuple[float, str]]:
+def parse_media_playlist(text: str, base: str, media_hosts=()) -> list[tuple[float, str]]:
     if "#EXT-X-ENDLIST" not in text:
         raise ProviderError("live_stream_unsupported")
     if any(tag in text for tag in ("#EXT-X-KEY", "#EXT-X-MAP", "#EXT-X-BYTERANGE")):
@@ -229,7 +255,7 @@ def parse_media_playlist(text: str, base: str) -> list[tuple[float, str]]:
         elif line and not line.startswith("#"):
             if duration is None:
                 raise ProviderError("playlist_invalid")
-            segments.append((duration, allowed_url(urljoin(base, html.unescape(line)))))
+            segments.append((duration, allowed_url(urljoin(base, html.unescape(line)), media_hosts)))
             duration = None
     if not segments or len(segments) > 4000 or sum(d for d, _ in segments) > 14400:
         raise ProviderError("movie_too_long")
