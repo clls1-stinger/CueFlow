@@ -13,6 +13,7 @@ import ipaddress
 import json
 import re
 import socket
+from difflib import SequenceMatcher
 from urllib.parse import quote, urljoin, urlsplit
 
 import httpx
@@ -109,6 +110,21 @@ class Provider:
         return streams
 
     async def search(self, query: str) -> list[dict]:
+        """The site only matches literal substrings; on a miss, retry per word and rank fuzzily."""
+        results = await self._search(query)
+        words = sorted({w for w in re.findall(r"\w+", query.lower()) if len(w) >= 3}, key=len, reverse=True)
+        if results or len(words) < 2:
+            return results
+        found = {}
+        for batch in await asyncio.gather(*(self._search(w) for w in words[:4]), return_exceptions=True):
+            if not isinstance(batch, Exception):
+                found.update((item["slug"], item) for item in batch)
+
+        def score(item):
+            return SequenceMatcher(None, query.lower(), item["title"].lower()).ratio()
+        return sorted((i for i in found.values() if score(i) >= 0.6), key=score, reverse=True)[:40]
+
+    async def _search(self, query: str) -> list[dict]:
         body = await self.fetch("https://streamimdb.ru/search?q=" + quote(query))
         soup = BeautifulSoup(body, "html.parser")
         found = {}
