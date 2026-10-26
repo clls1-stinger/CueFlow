@@ -74,6 +74,8 @@ async def test_player_api_registers_only_scoped_manifest_hosts(monkeypatch):
     async def fetch(url, limit=0):
         if url.startswith('https://streamimdb.ru/movie/'):
             return b'window.__cbCwMeta = {"type":"movie","id":123,"title":"Test"};'
+        if url.startswith('https://rest.opensubtitles.org/search/query-test'):
+            return b'[]'
         assert url == 'https://streamdata.vaplayer.ru/api.php?tmdb=123&type=movie'
         return json.dumps({'status_code':200,'data':{'stream_urls':[cdn]},'default_subs':[]}).encode()
     provider.fetch = fetch

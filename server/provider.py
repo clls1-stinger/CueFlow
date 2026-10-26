@@ -179,29 +179,8 @@ class Provider:
             raise ProviderError("movie_unavailable")
         streams = self.register_streams(streams)
         imdb = str(data.get("imdb_id", ""))
-        subtitles = []
-        subtitle_error = False
-        if re.fullmatch(r"tt\d{5,12}", imdb):
-            try:
-                candidates = json.loads(await self.fetch(
-                    "https://rest.opensubtitles.org/search/imdbid-" + imdb[2:], 4_000_000))
-                for item in candidates[:300]:
-                    if item.get("SubFormat") not in ("srt", "ass", "ssa", "vtt"):
-                        continue
-                    code = str(item.get("ISO639", ""))
-                    sid = str(item.get("IDSubtitleFile", ""))
-                    if not sid.isdigit() or not re.fullmatch(r"[a-z]{2,3}", code):
-                        continue
-                    try:
-                        url = allowed_url(item["SubDownloadLink"])
-                    except (KeyError, ProviderError):
-                        continue
-                    subtitles.append({"id": "os-" + sid, "language": code,
-                        "label": str(item.get("LanguageName", code))[:80],
-                        "name": str(item.get("SubFileName", ""))[:220],
-                        "format": item["SubFormat"], "url": url})
-            except (ProviderError, ValueError, KeyError, TypeError):
-                subtitle_error = True
+        title = str(meta.get("title", ""))[:200]
+        subtitles, subtitle_error = await self.opensubtitles(imdb, title)
         for index, item in enumerate(info.get("default_subs", [])[:30]):
             try:
                 url = allowed_url(item["url"])
@@ -217,9 +196,50 @@ class Provider:
         subtitles.sort(key=lambda s: (
             -len(release_words & set(re.findall(r"[a-z0-9]+", s["name"].lower()))),
             s["format"] != "srt"))
-        return {"slug": slug, "title": str(meta.get("title", ""))[:200],
+        return {"slug": slug, "title": title,
                 "imdb": imdb, "streams": streams, "subtitles": subtitles,
                 "subtitle_search_unavailable": subtitle_error}
+
+    async def opensubtitles(self, imdb: str, title: str) -> tuple[list[dict], bool]:
+        """OpenSubtitles caps each search at 100 mixed-language results, so Spanish and English
+        are also queried on their own. Without an IMDb match, fall back to a title search."""
+        paths = []
+        if re.fullmatch(r"tt\d{5,12}", imdb):
+            base = "imdbid-" + imdb[2:]
+            paths = [base, base + "/sublanguageid-spa", base + "/sublanguageid-eng"]
+        found, failures = {}, 0
+
+        async def run(path, check_title=False):
+            nonlocal failures
+            try:
+                candidates = json.loads(await self.fetch("https://rest.opensubtitles.org/search/" + path, 4_000_000))
+            except (ProviderError, ValueError):
+                failures += 1
+                return
+            for item in candidates[:300] if isinstance(candidates, list) else []:
+                try:
+                    if item.get("SubFormat") not in ("srt", "ass", "ssa", "vtt"):
+                        continue
+                    if check_title and (item.get("MovieKind") != "movie" or SequenceMatcher(
+                            None, str(item.get("MovieName", "")).lower(), title.lower()).ratio() < 0.8):
+                        continue
+                    code = str(item.get("ISO639", ""))
+                    sid = str(item.get("IDSubtitleFile", ""))
+                    if not sid.isdigit() or not re.fullmatch(r"[a-z]{2,3}", code):
+                        continue
+                    found.setdefault(sid, {"id": "os-" + sid, "language": code,
+                        "label": str(item.get("LanguageName", code))[:80],
+                        "name": str(item.get("SubFileName", ""))[:220],
+                        "format": item["SubFormat"], "url": allowed_url(item["SubDownloadLink"])})
+                except (KeyError, TypeError, AttributeError, ProviderError):
+                    continue
+
+        await asyncio.gather(*(run(p) for p in paths))
+        if not found and len(title) >= 2:
+            query = "query-" + quote(title.lower())
+            await asyncio.gather(*(run(query + suffix, True) for suffix in ("", "/sublanguageid-spa", "/sublanguageid-eng")))
+            return list(found.values()), not found and failures == len(paths) + 3
+        return list(found.values()), bool(paths) and failures == len(paths)
 
     async def playlist(self, url: str, height: int) -> tuple[list[tuple[float, str]], str]:
         # At most one master and one media playlist. Never hand remote URLs to FFmpeg.
