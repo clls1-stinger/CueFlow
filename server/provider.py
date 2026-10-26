@@ -180,7 +180,8 @@ class Provider:
         streams = self.register_streams(streams)
         imdb = str(data.get("imdb_id", ""))
         title = str(meta.get("title", ""))[:200]
-        subtitles, subtitle_error = await self.opensubtitles(imdb, title)
+        year = re.search(r'"datePublished"\s*:\s*"(\d{4})', body)
+        subtitles, subtitle_error = await self.opensubtitles(imdb, title, int(year[1]) if year else None)
         for index, item in enumerate(info.get("default_subs", [])[:30]):
             try:
                 url = allowed_url(item["url"])
@@ -200,14 +201,15 @@ class Provider:
                 "imdb": imdb, "streams": streams, "subtitles": subtitles,
                 "subtitle_search_unavailable": subtitle_error}
 
-    async def opensubtitles(self, imdb: str, title: str) -> tuple[list[dict], bool]:
+    async def opensubtitles(self, imdb: str, title: str, year: int | None = None) -> tuple[list[dict], bool]:
         """OpenSubtitles caps each search at 100 mixed-language results, so Spanish and English
-        are also queried on their own. Without an IMDb match, fall back to a title search."""
+        are also queried on their own. Without an IMDb match, fall back to a title search limited
+        to the release year, and to the single film with the most subtitles (titles repeat)."""
         paths = []
         if re.fullmatch(r"tt\d{5,12}", imdb):
             base = "imdbid-" + imdb[2:]
             paths = [base, base + "/sublanguageid-spa", base + "/sublanguageid-eng"]
-        found, failures = {}, 0
+        found, films, failures = {}, {}, 0
 
         async def run(path, check_title=False):
             nonlocal failures
@@ -220,13 +222,15 @@ class Provider:
                 try:
                     if item.get("SubFormat") not in ("srt", "ass", "ssa", "vtt"):
                         continue
-                    if check_title and (item.get("MovieKind") != "movie" or SequenceMatcher(
-                            None, str(item.get("MovieName", "")).lower(), title.lower()).ratio() < 0.8):
+                    if check_title and (item.get("MovieKind") != "movie" or not year
+                            or not str(item.get("MovieYear", "")).isdigit() or abs(int(item["MovieYear"]) - year) > 1
+                            or SequenceMatcher(None, str(item.get("MovieName", "")).lower(), title.lower()).ratio() < 0.8):
                         continue
                     code = str(item.get("ISO639", ""))
                     sid = str(item.get("IDSubtitleFile", ""))
                     if not sid.isdigit() or not re.fullmatch(r"[a-z]{2,3}", code):
                         continue
+                    films.setdefault(str(item.get("IDMovieImdb", "")), set()).add(sid)
                     found.setdefault(sid, {"id": "os-" + sid, "language": code,
                         "label": str(item.get("LanguageName", code))[:80],
                         "name": str(item.get("SubFileName", ""))[:220],
@@ -238,6 +242,9 @@ class Provider:
         if not found and len(title) >= 2:
             query = "query-" + quote(title.lower())
             await asyncio.gather(*(run(query + suffix, True) for suffix in ("", "/sublanguageid-spa", "/sublanguageid-eng")))
+            if films:
+                best = max(films.values(), key=len)
+                found = {sid: entry for sid, entry in found.items() if sid in best}
             return list(found.values()), not found and failures == len(paths) + 3
         return list(found.values()), bool(paths) and failures == len(paths)
 
