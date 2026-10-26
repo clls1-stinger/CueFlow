@@ -68,3 +68,8 @@
   .mode-tabs button { padding-inline:10px; font-size:13px; }
   .cinema-search-row button { padding-inline:16px; }
 }
+@font-face{font-family:"Courier Prime";src:url(/fonts/courier-prime.woff2) format("woff2");font-weight:400;font-display:swap}
+#cinema-video{--cue-color:#ffe14d;--cue-font:"Courier Prime","Courier New",Courier,monospace;--cue-size:100%;--cue-bg:rgba(0,0,0,.75)}
+#cinema-video::cue{color:var(--cue-color);font-family:var(--cue-font);font-size:var(--cue-size);background-color:var(--cue-bg);line-height:1.25}
+.cinema-style{margin:4px 0 12px;border-top:0;padding-top:0}.cinema-style-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}.cinema-style-grid label{display:flex;flex-direction:column;gap:8px}.cinema-style-grid input[type=range]{width:100%;accent-color:var(--accent)}
+@media(max-width:600px){.cinema-style-grid{grid-template-columns:1fr}}

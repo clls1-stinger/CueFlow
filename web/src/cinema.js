@@ -14,12 +14,12 @@ const words = {
     downloading:'Descargando la película',remuxing:'Preparando el video',synchronizing:'Sincronizando con el audio',packaging:'Añadiendo subtítulos al MP4',translating:'Añadiendo la traducción al MP4',ready:'Lista para ver',
     download:'Descargar MP4 con subtítulos',srt:'Descargar SRT sincronizado',translate:'Traducir subtítulos',translation:'Traduciendo diálogos',translationDone:'Traducción completa. Preparando el MP4.',
     cancel:'Cancelar y borrar archivos',erase:'Borrar esta sesión',expiry:'Se borrará si dejas de usarla a las',max:'El enlace es temporal. Al caducar puedes preparar la película otra vez.',
-    edit:'¿Necesitas otro idioma?',busy:'Puedes reproducir mientras se prepara el archivo completo. La sincronización se verifica en segundo plano.',pendingSync:'Subtítulos originales · sincronización pendiente',preliminarySync:'Ajuste preliminar · verificando el audio completo',verifiedSync:'Sincronización verificada',streaming:'Ya puedes reproducir',translationWaiting:'Traducción lista para ver. El MP4 se prepara al terminar la sincronización.',expired:'Esta sesión caducó. Vuelve a preparar la película.',
+    edit:'¿Necesitas otro idioma?',style:'Estilo de subtítulos',styleColor:'Color',styleFont:'Fuente',styleSize:'Tamaño',styleBackground:'Opacidad del fondo',styleReset:'Restablecer',yellow:'Amarillo',white:'Blanco',cyan:'Cian',green:'Verde',fontScript:'Guion (Courier Prime)',fontSans:'Sans serif',fontSerif:'Serif',busy:'Puedes reproducir mientras se prepara el archivo completo. La sincronización se verifica en segundo plano.',pendingSync:'Subtítulos originales · sincronización pendiente',preliminarySync:'Ajuste preliminar · verificando el audio completo',verifiedSync:'Sincronización verificada',streaming:'Ya puedes reproducir',translationWaiting:'Traducción lista para ver. El MP4 se prepara al terminar la sincronización.',expired:'Esta sesión caducó. Vuelve a preparar la película.',
     errors:{query_invalid:'Escribe al menos dos caracteres.',queue_full:'Oracle está ocupado. Inténtalo de nuevo en unos minutos.',storage_full:'El espacio temporal está ocupado. Borra una sesión o vuelve más tarde.',rate_limit:'Se alcanzó el límite temporal. Espera unos minutos.',movie_too_large:'Esta calidad supera el límite de 2 GB. Prueba hasta 480p.',source_unavailable:'La fuente no respondió. Vuelve a intentarlo.',movie_unavailable:'La fuente no ofrece un video disponible para esta película.',subtitle_missing:'Elige una versión de subtítulos.',alignment_failed:'No se pudo verificar la sincronización con esta versión. Prueba otra.',processing_failed:'No se pudo completar la película con esta versión. Prueba otra.',interrupted:'La preparación se interrumpió. Vuelve a iniciarla.',job_expired:'Esta sesión caducó. Vuelve a preparar la película.',googleTimeout:'Google tardó demasiado. Puedes reintentar la traducción.',googleUnavailable:'Google Translate no respondió. El video y los subtítulos originales siguen disponibles.',translation_timing_changed:'La traducción cambió los tiempos y no se guardó.',network:'No se pudo completar la operación. Comprueba la conexión o vuelve a intentarlo.'},
   },
   en: {
     popular:'Popular today',popularSource:'On StreamIMDB',browse:'Browse popular movies',title:'Movies',search:'Search StreamIMDB',query:'Movie title',find:'Search',empty:'No movies found.',found:'Results',choose:'Subtitle release',language:'Output language',quality:'Quality',small:'Up to 480p · smaller download',large:'Up to 720p',prepare:'Watch movie and sync subtitles',loading:'Searching…',loadingMovie:'Checking video and subtitles…',
-    note:'The movie is prepared temporarily on Oracle. Files are deleted after one hour of inactivity, and at most six hours after creation.',consent:'I agree to send the subtitle text to Google for translation into the selected language. I will keep this tab visible during translation.',fallback:'There is no release in this language. You can translate an available release while the video is being prepared.',noSubs:'No subtitles were found for this movie. Try checking again later.',downloading:'Downloading movie',remuxing:'Preparing video',synchronizing:'Synchronizing with audio',packaging:'Adding subtitles to MP4',translating:'Adding translation to MP4',ready:'Ready to watch',download:'Download MP4 with subtitles',srt:'Download synchronized SRT',translate:'Translate subtitles',translation:'Translating dialogue',translationDone:'Translation complete. Preparing MP4.',cancel:'Cancel and delete files',erase:'Delete this session',expiry:'If unused, files will be deleted at',max:'This link is temporary. Prepare the movie again after it expires.',edit:'Need another language?',busy:'You can watch while the complete file is prepared. Synchronization is verified in the background.',pendingSync:'Original subtitles · synchronization pending',preliminarySync:'Preliminary adjustment · checking the full audio',verifiedSync:'Synchronization verified',streaming:'Playback is available',translationWaiting:'Translation ready to watch. MP4 export follows full synchronization.',expired:'This session expired. Prepare the movie again.',
+    note:'The movie is prepared temporarily on Oracle. Files are deleted after one hour of inactivity, and at most six hours after creation.',consent:'I agree to send the subtitle text to Google for translation into the selected language. I will keep this tab visible during translation.',fallback:'There is no release in this language. You can translate an available release while the video is being prepared.',noSubs:'No subtitles were found for this movie. Try checking again later.',downloading:'Downloading movie',remuxing:'Preparing video',synchronizing:'Synchronizing with audio',packaging:'Adding subtitles to MP4',translating:'Adding translation to MP4',ready:'Ready to watch',download:'Download MP4 with subtitles',srt:'Download synchronized SRT',translate:'Translate subtitles',translation:'Translating dialogue',translationDone:'Translation complete. Preparing MP4.',cancel:'Cancel and delete files',erase:'Delete this session',expiry:'If unused, files will be deleted at',max:'This link is temporary. Prepare the movie again after it expires.',edit:'Need another language?',style:'Subtitle style',styleColor:'Color',styleFont:'Font',styleSize:'Size',styleBackground:'Background opacity',styleReset:'Reset',yellow:'Yellow',white:'White',cyan:'Cyan',green:'Green',fontScript:'Screenplay (Courier Prime)',fontSans:'Sans serif',fontSerif:'Serif',busy:'You can watch while the complete file is prepared. Synchronization is verified in the background.',pendingSync:'Original subtitles · synchronization pending',preliminarySync:'Preliminary adjustment · checking the full audio',verifiedSync:'Synchronization verified',streaming:'Playback is available',translationWaiting:'Translation ready to watch. MP4 export follows full synchronization.',expired:'This session expired. Prepare the movie again.',
     errors:{query_invalid:'Enter at least two characters.',queue_full:'Oracle is busy. Try again in a few minutes.',storage_full:'Temporary storage is full. Delete a session or try later.',rate_limit:'Temporary request limit reached. Wait a few minutes.',movie_too_large:'This quality exceeds 2 GB. Try up to 480p.',source_unavailable:'The source did not respond. Try again.',movie_unavailable:'No available video was found for this movie.',subtitle_missing:'Choose a subtitle release.',alignment_failed:'Synchronization could not be verified for this release. Try another.',processing_failed:'This release could not be processed. Try another.',interrupted:'Preparation was interrupted. Start it again.',job_expired:'This session expired. Prepare the movie again.',googleTimeout:'Google took too long. Retry the translation.',googleUnavailable:'Google Translate did not respond. Video and original subtitles remain available.',translation_timing_changed:'The translation changed timing and was not saved.',network:'The operation could not be completed. Check your connection or retry.'},
   },
 };
@@ -44,6 +44,12 @@ export function setupCinema(getLanguage, activate) {
     </section>
     <section id="cinema-session" hidden><h2 id="cinema-session-title"></h2><p id="cinema-state" role="status" aria-live="polite"></p><progress id="cinema-progress" max="100" value="0"></progress><p id="cinema-busy" class="help" data-cinema="busy"></p>
       <video id="cinema-video" controls playsinline preload="metadata" hidden></video>
+      <details id="cinema-style" class="cinema-style" hidden><summary data-cinema="style"></summary><div class="cinema-style-grid">
+        <label><span data-cinema="styleColor"></span><select id="cinema-style-color"><option value="#ffe14d" data-cinema="yellow"></option><option value="#ffffff" data-cinema="white"></option><option value="#7fe7ff" data-cinema="cyan"></option><option value="#9dff8a" data-cinema="green"></option></select></label>
+        <label><span data-cinema="styleFont"></span><select id="cinema-style-font"><option value="script" data-cinema="fontScript"></option><option value="sans" data-cinema="fontSans"></option><option value="serif" data-cinema="fontSerif"></option></select></label>
+        <label><span data-cinema="styleSize"></span><input id="cinema-style-size" type="range" min="60" max="200" step="10"></label>
+        <label><span data-cinema="styleBackground"></span><input id="cinema-style-background" type="range" min="0" max="100" step="5"></label>
+      </div><button id="cinema-style-reset" class="text-button" type="button" data-cinema="styleReset"></button></details>
       <p id="cinema-metrics" class="help"></p>
       <div id="cinema-downloads" class="cinema-actions" hidden><a id="cinema-download" class="primary" data-cinema="download" download></a><a id="cinema-srt" class="secondary" data-cinema="srt" download></a></div>
       <details id="cinema-translation" hidden><summary data-cinema="edit"></summary><label><span data-cinema="language"></span><select id="cinema-target"></select></label><label class="checkbox"><input id="cinema-translate-consent" type="checkbox"><span data-cinema="consent"></span></label><button id="cinema-translate" class="secondary" type="button" data-cinema="translate"></button></details>
@@ -51,6 +57,19 @@ export function setupCinema(getLanguage, activate) {
       <p id="cinema-expiry" class="help"></p><p class="help" data-cinema="max"></p><button id="cinema-delete" class="text-button" type="button"></button>
     </section>`;
 
+  const STYLE_DEFAULT={color:'#ffe14d',font:'script',size:100,background:75};
+  const FONTS={script:'"Courier Prime","Courier New",Courier,monospace',sans:'Inter,Arial,sans-serif',serif:'Georgia,"Times New Roman",serif'};
+  let subtitleStyle={...STYLE_DEFAULT};
+  try{subtitleStyle={...STYLE_DEFAULT,...JSON.parse(localStorage.getItem('cueflow-subtitle-style')||'{}')};}catch{/* Optional. */}
+  function applyStyle(save=true) {
+    const v=$('video').style;
+    if(!FONTS[subtitleStyle.font])subtitleStyle.font=STYLE_DEFAULT.font;
+    v.setProperty('--cue-color',subtitleStyle.color);v.setProperty('--cue-font',FONTS[subtitleStyle.font]);
+    v.setProperty('--cue-size',subtitleStyle.size+'%');v.setProperty('--cue-bg',`rgba(0,0,0,${subtitleStyle.background/100})`);
+    $('style-color').value=subtitleStyle.color;$('style-font').value=subtitleStyle.font;
+    $('style-size').value=subtitleStyle.size;$('style-background').value=subtitleStyle.background;
+    if(save)try{localStorage.setItem('cueflow-subtitle-style',JSON.stringify(subtitleStyle));}catch{/* Optional. */}
+  }
   async function api(path, options = {}) {
     const response = await fetch(API + path, {...options, headers:{'Content-Type':'application/json',...options.headers}});
     if (response.status === 204) return null;
@@ -144,7 +163,7 @@ export function setupCinema(getLanguage, activate) {
     hls?.destroy();hls=null;sourceToken=null;captionRun++;timingCache=null;
     if(captionsURL)URL.revokeObjectURL(captionsURL);captionsURL=null;
     delete $('video').dataset.track;
-    $('video').pause();$('video').removeAttribute('src');$('video').replaceChildren();$('video').load();$('video').hidden=true;
+    $('video').pause();$('video').removeAttribute('src');$('video').replaceChildren();$('video').load();$('video').hidden=true;$('style').hidden=true;
   }
   function remember() {try{localStorage.setItem('cueflow-movie-session',JSON.stringify({token:job.token,slug:job.slug}));}catch{/* Optional. */}}
   function setTrack(source, language, version) {
@@ -157,7 +176,7 @@ export function setupCinema(getLanguage, activate) {
   }
   async function attachVideo() {
     if(sourceToken===job.token)return;
-    const token=job.token;sourceToken=token;$('video').hidden=false;
+    const token=job.token;sourceToken=token;$('video').hidden=false;$('style').hidden=false;
     if(!job.stream_ready){$('video').src=file('movie.mp4');return;}
     const url=`${API}/jobs/${encodeURIComponent(token)}/stream.m3u8`;
     if($('video').canPlayType('application/vnd.apple.mpegurl')){$('video').src=url;return;}
@@ -305,6 +324,12 @@ export function setupCinema(getLanguage, activate) {
     }catch(e){if(job?.token===token&&e.message!=='cancelled')error(e);}finally{translating=false;renderJob();}
   }
   $('translate').onclick=translate;$('translate-consent').onchange=renderJob;
+  $('style-color').onchange=e=>{subtitleStyle.color=e.target.value;applyStyle();};
+  $('style-font').onchange=e=>{subtitleStyle.font=e.target.value;applyStyle();};
+  $('style-size').oninput=e=>{subtitleStyle.size=Number(e.target.value);applyStyle();};
+  $('style-background').oninput=e=>{subtitleStyle.background=Number(e.target.value);applyStyle();};
+  $('style-reset').onclick=()=>{subtitleStyle={...STYLE_DEFAULT};applyStyle();};
+  applyStyle(false);
   $('language').onchange=()=>updateSelection(true);$('subtitle').onchange=()=>updateSelection();
   $('delete').onclick=async()=>{
     if(!job)return;const token=job.token;clearError();translation?.abort();autoTranslate=false;
