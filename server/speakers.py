@@ -1,6 +1,6 @@
 """Speaker diarization with sherpa-onnx, and assignment of speakers to subtitle cues.
 
-The worker runs in a child process (``python -m server.speakers movie.mp4 turns.json``) so
+The worker runs in a child process (``python -m server.speakers movie.mp4 subtitles.srt turns.json``) so
 expiry can kill it, and so the ONNX runtime memory is returned when it finishes.
 """
 from __future__ import annotations
@@ -27,27 +27,102 @@ def available() -> bool:
     return os.getenv("CUEFLOW_DIARIZATION", "1") != "0" and SEGMENTATION.is_file() and EMBEDDING.is_file()
 
 
-def diarize(media: str, threshold: float) -> list[tuple[float, float, int]]:
+def regions(text: str, pad=0.3, gap=1.0) -> list[tuple[float, float]]:
+    """Merged subtitle spans: only audio with dialogue is analysed."""
+    spans = sorted((max(0, c.start.total_seconds() - pad), c.end.total_seconds() + pad) for c in srt.parse(text))
+    merged = []
+    for a, b in spans:
+        if merged and a - merged[-1][1] <= gap:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b])
+    return [(a, b) for a, b in merged]
+
+
+def diarize(media: str, subtitles: str, threshold: float, chunk_seconds=300) -> list[tuple[float, float, int]]:
+    """Diarize dialogue in bounded chunks, then link chunk-local speakers by voice embedding.
+
+    Whole-film diarization keeps every embedding and frame in memory (a 93 min film passed 3 GB),
+    so memory here depends on the chunk size, not on the film length."""
     import numpy as np
     import sherpa_onnx as so
 
     threads = int(os.getenv("CUEFLOW_DIARIZATION_THREADS", "2"))
+    embedding_config = so.SpeakerEmbeddingExtractorConfig(model=str(EMBEDDING), num_threads=threads)
     config = so.OfflineSpeakerDiarizationConfig(
         segmentation=so.OfflineSpeakerSegmentationModelConfig(
             pyannote=so.OfflineSpeakerSegmentationPyannoteModelConfig(model=str(SEGMENTATION)), num_threads=threads),
-        embedding=so.SpeakerEmbeddingExtractorConfig(model=str(EMBEDDING), num_threads=threads),
+        embedding=embedding_config,
         clustering=so.FastClusteringConfig(num_clusters=-1, threshold=threshold),
         min_duration_on=0.3, min_duration_off=0.5)
     if not config.validate():
         raise RuntimeError("invalid diarization config")
     engine = so.OfflineSpeakerDiarization(config)
+    extractor = so.SpeakerEmbeddingExtractor(embedding_config)
+    rate = engine.sample_rate
     raw = subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file", "-i", media,
-        "-map", "0:a:0", "-vn", "-ac", "1", "-ar", str(engine.sample_rate), "-f", "s16le", "-"],
+        "-map", "0:a:0", "-vn", "-ac", "1", "-ar", str(rate), "-f", "s16le", "-"],
         check=True, capture_output=True).stdout
-    samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768
-    del raw
-    return [(round(s.start, 3), round(s.end, 3), int(s.speaker))
-            for s in engine.process(samples).sort_by_start_time()]
+    audio = np.frombuffer(raw, dtype=np.int16)  # int16 view; chunks are converted on demand
+
+    def samples(a, b):
+        return audio[int(a * rate):int(b * rate)].astype(np.float32) / 32768
+
+    # Group dialogue spans into chunks of about chunk_seconds of audio.
+    chunks, current, size = [], [], 0.0
+    for a, b in regions(Path(subtitles).read_text(encoding="utf-8")):
+        while b - a > chunk_seconds:
+            chunks.append([(a, a + chunk_seconds)])
+            a += chunk_seconds
+        if current and size + b - a > chunk_seconds:
+            chunks.append(current)
+            current, size = [], 0.0
+        current.append((a, b))
+        size += b - a
+    if current:
+        chunks.append(current)
+
+    centroids, counts, turns = [], [], []
+    for spans in chunks:
+        pieces = [samples(a, b) for a, b in spans]
+        joined = np.concatenate(pieces) if pieces else np.zeros(0, np.float32)
+        if len(joined) < rate:
+            continue
+        offsets, position = [], 0.0  # (position in joined audio, real start, length)
+        for (a, _), piece in zip(spans, pieces):
+            offsets.append((position, a, len(piece) / rate))
+            position += len(piece) / rate
+        local = {}
+        for seg in engine.process(joined).sort_by_start_time():
+            for at, real, length in offsets:  # map back, splitting at span boundaries
+                a, b = max(seg.start, at), min(seg.end, at + length)
+                if b - a >= 0.2:
+                    local.setdefault(seg.speaker, []).append((real + a - at, real + b - at))
+        for speaker, spans_ in local.items():
+            longest = sorted(spans_, key=lambda s: s[0] - s[1])
+            voice, total = [], 0.0
+            for a, b in longest:
+                if total >= 30:
+                    break
+                voice.append(samples(a, b))
+                total += b - a
+            stream = extractor.create_stream()
+            stream.accept_waveform(sample_rate=rate, waveform=np.concatenate(voice))
+            stream.input_finished()
+            vector = np.array(extractor.compute(stream), dtype=np.float32)
+            vector /= np.linalg.norm(vector) or 1
+            scores = [float(vector @ (c / np.linalg.norm(c))) for c in centroids]
+            best = int(np.argmax(scores)) if scores else -1
+            if best >= 0 and scores[best] >= 1 - threshold:
+                centroids[best] = centroids[best] + vector * total
+                counts[best] += total
+                label = best
+            else:
+                centroids.append(vector * total)
+                counts.append(total)
+                label = len(centroids) - 1
+            turns.extend((round(a, 3), round(b, 3), label) for a, b in spans_)
+    return sorted(turns)
 
 
 def _overlaps(turns, start, end):
@@ -117,6 +192,6 @@ def speaker_vtt(cues: list[tuple[srt.Subtitle, int | None]]) -> str:
 
 
 if __name__ == "__main__":
-    result = diarize(sys.argv[1], float(os.getenv("CUEFLOW_DIARIZATION_THRESHOLD", "0.5")))
-    Path(sys.argv[2]).write_text(json.dumps(result), encoding="utf-8")
+    result = diarize(sys.argv[1], sys.argv[2], float(os.getenv("CUEFLOW_DIARIZATION_THRESHOLD", "0.5")))
+    Path(sys.argv[3]).write_text(json.dumps(result), encoding="utf-8")
     print("CUEFLOW_SPEAKERS " + str(len({s for *_, s in result})), flush=True)

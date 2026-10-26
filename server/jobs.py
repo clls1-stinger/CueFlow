@@ -336,7 +336,8 @@ class Jobs:
                     return
                 self.entries[token]["speakers"] = "running"
                 await command("nice", "-n", "19", sys.executable, "-m", "server.speakers",
-                    str(folder / "movie.mp4"), str(folder / "speakers.json"), timeout=3600)
+                    str(folder / "movie.mp4"), str(folder / "subtitles.srt"), str(folder / "speakers.json"),
+                    timeout=7200)
                 turns = [tuple(t) for t in json.loads((folder / "speakers.json").read_text())]
                 cues = speakers.assign((folder / "subtitles.srt").read_text(encoding="utf-8"), turns)
                 pending = folder / "pending-speakers.vtt"

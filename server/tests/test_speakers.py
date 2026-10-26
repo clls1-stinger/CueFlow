@@ -1,3 +1,5 @@
+import pytest
+
 from server import speakers
 
 TEXT = """1
@@ -35,3 +37,8 @@ def test_vtt_numbers_speakers_by_first_appearance_and_escapes():
     assert "<v.s2 2>On set, all day.</v>" in vtt
     assert "<v.s1 1>Filming what?</v>" in vtt
     assert "&lt;" not in vtt and "<i>" not in vtt
+
+
+def test_regions_merge_close_cues_and_skip_silence():
+    assert speakers.regions(TEXT) == pytest.approx([(0.7, 10.3)])
+    assert speakers.regions(TEXT, gap=0.1) == pytest.approx([(0.7, 3.3), (3.7, 8.3), (8.7, 10.3)])
