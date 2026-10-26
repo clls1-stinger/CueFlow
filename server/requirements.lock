@@ -68,6 +68,10 @@ pysubs2==1.9.0
     #   ffsubsync
 rich==15.0.0
     # via ffsubsync
+sherpa-onnx==2.0.0
+    # via -r server/requirements.txt
+sherpa-onnx-core==2.0.0
+    # via sherpa-onnx
 soupsieve==3.0.4
     # via beautifulsoup4
 srt==3.5.3

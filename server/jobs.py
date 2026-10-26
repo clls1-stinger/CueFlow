@@ -19,6 +19,7 @@ import pysubs2
 import srt
 
 from server.provider import Provider, ProviderError
+from server import speakers
 from server.segments import DownloadGate, SegmentCache
 
 TOKEN = re.compile(r"[A-Za-z0-9_-]{43}\Z")
@@ -26,7 +27,8 @@ FILES = {"movie.mp4": "video/mp4", "subtitles.srt": "application/x-subrip",
          "subtitles.vtt": "text/vtt", "translated.mp4": "video/mp4",
          "translated.srt": "application/x-subrip", "translated.vtt": "text/vtt",
          "original.srt": "application/x-subrip", "original.vtt": "text/vtt",
-         "preliminary.vtt": "text/vtt", "preliminary.srt": "application/x-subrip"}
+         "preliminary.vtt": "text/vtt", "preliminary.srt": "application/x-subrip",
+         "speakers.vtt": "text/vtt"}
 
 
 @dataclass
@@ -103,6 +105,8 @@ class Jobs:
         self.tasks: dict[str, asyncio.Task] = {}
         self.media: dict[str, SegmentCache] = {}
         self.download_gate = DownloadGate(4)
+        self.speaker_tasks: dict[str, asyncio.Task] = {}
+        self.speaker_gate = asyncio.Semaphore(1)
         self.lock = asyncio.Lock()
 
     def folder(self, token):
@@ -136,6 +140,8 @@ class Jobs:
                     shutil.rmtree(path)
                     path.mkdir(mode=0o700)
                     entry.update(state="error", error="interrupted", progress=0)
+                if entry.get("speakers") in ("pending", "running"):
+                    entry["speakers"] = "failed"
                 self.entries[path.name] = entry
                 self.persist(path.name)
             except (OSError, ValueError, KeyError, TypeError):
@@ -290,6 +296,10 @@ class Jobs:
                 self.phase(token, "packaging", 95)
                 await self.mux(token, "segments/local.m3u8", "subtitles.srt", "movie.mp4", subtitle["language"])
                 self.phase(token, "ready", 100)
+                if speakers.available():
+                    self.entries[token]["speakers"] = "pending"
+                    self.persist(token)
+                    self.speaker_tasks[token] = asyncio.create_task(self.separate_speakers(token))
         except asyncio.CancelledError:
             raise
         except Exception as exc:
@@ -315,6 +325,33 @@ class Jobs:
             if quick:
                 quick.cancel()
                 await asyncio.gather(quick, return_exceptions=True)
+
+    async def separate_speakers(self, token):
+        """Best effort, after the movie is ready. Streaming always wins: the worker runs one at a
+        time at the lowest CPU priority, and playback never waits for or fails because of it."""
+        folder = self.folder(token)
+        try:
+            async with self.speaker_gate:
+                if token not in self.entries:
+                    return
+                self.entries[token]["speakers"] = "running"
+                await command("nice", "-n", "19", sys.executable, "-m", "server.speakers",
+                    str(folder / "movie.mp4"), str(folder / "speakers.json"), timeout=3600)
+                turns = [tuple(t) for t in json.loads((folder / "speakers.json").read_text())]
+                cues = speakers.assign((folder / "subtitles.srt").read_text(encoding="utf-8"), turns)
+                pending = folder / "pending-speakers.vtt"
+                pending.write_text(speakers.speaker_vtt(cues), encoding="utf-8")
+                pending.replace(folder / "speakers.vtt")
+                self.entries[token].update(speakers="ready", speaker_count=len({s for *_, s in turns}))
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            if token in self.entries:
+                self.entries[token]["speakers"] = "failed"
+        finally:
+            self.speaker_tasks.pop(token, None)
+            if token in self.entries:
+                self.persist(token)
 
     async def mux(self, token, video, subtitle, output, language):
         folder = self.folder(token)
@@ -379,6 +416,11 @@ class Jobs:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
+        speaker_task = self.speaker_tasks.pop(token, None)
+        if speaker_task and not speaker_task.done():
+            speaker_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await speaker_task
         cache = self.media.pop(token, None)
         if cache:
             await cache.close()
@@ -391,7 +433,8 @@ class Jobs:
                 await self.remove(token)
 
     async def close(self):
-        for task in self.tasks.values():
+        tasks = [*self.tasks.values(), *self.speaker_tasks.values()]
+        for task in tasks:
             task.cancel()
-        await asyncio.gather(*self.tasks.values(), return_exceptions=True)
+        await asyncio.gather(*tasks, return_exceptions=True)
         await asyncio.gather(*(cache.close() for cache in self.media.values()))
